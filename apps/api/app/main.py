@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.db import router as db_router
 from app.api.routes.progress import router as progress_router
+from app.api.routes.quests import router as quests_router
 from app.api.routes.xp import router as xp_router
 from app.db.pool import close_pool, get_pool
 
@@ -41,4 +42,5 @@ async def health():
 
 app.include_router(db_router)
 app.include_router(progress_router)
+app.include_router(quests_router)
 app.include_router(xp_router)
