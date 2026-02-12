@@ -1,5 +1,3 @@
-
-
 # TITAN PROTOCOL
 
 Titan Protocol is a full-stack life gamification system that turns real-world habits, goals, and discipline into XP, dynamic levels, and fixed milestone-based ranks.
@@ -30,17 +28,17 @@ This is a life operating system.
 
 ## 🏗 Architecture
 
-Monorepo Structure:
+### Monorepo structure
 
+```text
 titan-protocol/
-│
-├── apps/
-│   ├── api/          # FastAPI backend
-│   └── web/          # Next.js frontend
-│
-├── supabase/         # Database schema & SQL
-├── docs/
-└── infra/
+  apps/
+    api/        # FastAPI backend
+    web/        # Next.js frontend
+  supabase/     # SQL/schema notes (optional)
+  docs/         # Documentation (optional)
+  infra/        # Deployment/infra (optional)
+```
 
 ---
 
