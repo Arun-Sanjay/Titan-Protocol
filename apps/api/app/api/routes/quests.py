@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# TODO: quests will migrate to activities (module General Tasks) later.
+
 import json
 from datetime import date
 from typing import Literal, Optional

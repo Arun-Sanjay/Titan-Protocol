@@ -122,6 +122,12 @@ npm install
 npm run dev
 ```
 
+Optional AI meal estimation setup (`apps/web/.env.local`):
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+```
+
 Frontend:
 http://localhost:3000
 

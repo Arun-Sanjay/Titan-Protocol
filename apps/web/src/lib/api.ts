@@ -1,27 +1,340 @@
-export async function apiGet(path: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!baseUrl) {
-    throw new Error("Missing NEXT_PUBLIC_API_URL");
-  }
+import { db, type CycleRecord, type DailyLogRecord, type EngineRecord, type ModuleRecord } from "./db";
+import {
+  createProgram,
+  endProgram,
+  ensureEngineProgram,
+  extendProgram as extendProgramV2,
+  getActiveProgram,
+  getProgramById,
+  getProgramTimeline,
+  getProgramsByEngine,
+} from "./program";
+import {
+  addNutritionLog,
+  addTask as addTaskV2,
+  getDayTaskStats,
+  getNutritionLogsForDate,
+  getNutritionTotalsForDate,
+  listProgramTasks as listProgramTasksV2,
+  toggleTaskActive as toggleTaskActiveV2,
+  toggleTaskComplete as toggleTaskCompleteV2,
+} from "./tasks";
+import {
+  getDayIndex,
+  getProgramAverageConsistency,
+  getWindow,
+  getWindowSquares,
+} from "./analytics";
+import {
+  addExerciseToWorkout,
+  createSetWithDefaults,
+  createTemplate,
+  finishWorkout as finishBodyWorkout,
+  getWorkout as getBodyWorkout,
+  getTemplate,
+  getWorkoutDetail as getBodyWorkoutDetail,
+  getWorkouts as getBodyWorkouts,
+  listExercises,
+  listTemplates,
+  reorderWorkoutExercises,
+  startEmptyWorkout,
+  startWorkoutFromTemplate,
+  updateWorkoutSet as updateBodyWorkoutSet,
+  upsertExercise,
+  type WorkoutDetail as BodyWorkoutDetail,
+} from "./body";
+import {
+  activateEngine,
+  addSet,
+  addFocusSession,
+  addSkillSession,
+  archiveCycle,
+  archiveTask,
+  calculateCycleConsistency,
+  calculateEngineScore,
+  calculateTitanScore,
+  canCreateCycle,
+  chunkDates,
+  computeDayColor,
+  computeTodayStats,
+  createTask,
+  createCycle,
+  createGymCycle,
+  createWorkout,
+  extendCycle,
+  getActiveCycles,
+  getAllCycles,
+  getEngineByName,
+  getEngineTodayView,
+  getEngineDashboardStats,
+  getEngines,
+  getFocusStats,
+  getCycleCompletionMap,
+  getModuleByName,
+  getModulesForEngine,
+  getOrCreateEngine,
+  getOrCreateTodayLog,
+  getPrimaryCycle,
+  getSkills,
+  getTodaysFocusUnits,
+  getTodayCoreCompletionStatus,
+  getTodaysSkillMinutes,
+  getTodaysWorkoutCount,
+  getWeeklyWorkoutStats,
+  getWeeklySkillMinutes,
+  listDatesForCycle,
+  listTasks,
+  logDaily,
+  setActiveSkill,
+  setModuleActive,
+  setPrimaryCycle,
+  syncEngineModules,
+  toggleTaskForToday,
+  type DayColorInput,
+  type DayColorResult,
+  type CycleConsistencyResult,
+  type EngineScoreResult,
+  type EngineDashboardStats,
+  type EngineTodayStats,
+  type EngineTodayView,
+  type FocusStatsResult,
+  type TitanScoreResult,
+  type WeeklyWorkoutStatsResult,
+} from "./engine";
+import {
+  addMindFocusSession,
+  archiveMindProgram,
+  canFillEveningJournal,
+  computeMindProgramDayIndex,
+  createMindProgram,
+  dayIndexFromProgram,
+  evaluateMindAutoCompletions,
+  extendMindProgram,
+  generateAdaptiveMindFeedback,
+  generateDailyMindFeedback,
+  generateWeeklyMindFeedback,
+  getActiveMindProgram,
+  getMindActiveProgramView,
+  getMindCompletionForDate,
+  getMindConsistencyForRange,
+  getMindDailyState,
+  getMindDayLog,
+  getMindFocusTotal,
+  getMindFocusMinutesForDate,
+  getMindFocusSessionsForDate,
+  getMindFocusStats,
+  getMindJournal,
+  getMindJournalEntry,
+  getMindProgramById,
+  getMindProgramEndDate,
+  getMindProgramProgress,
+  getMindRangeSummary,
+  getMindRuleViolationsForDate,
+  listMindRules,
+  logMindRuleViolation,
+  updateMindRuleViolationNote,
+  getPendingWeeklyReview,
+  hardResetMindProgram,
+  isMindProgramDateInRange,
+  listMindWeeklyReviews,
+  listMindTasks,
+  saveMindWeeklyReview,
+  setMindTaskCompletion,
+  toggleMindTaskForDate,
+  upsertMindEveningJournal,
+  upsertMindMorningJournal,
+} from "./mind";
+import {
+  archiveProgram,
+  extendProgram,
+  getBodyProgramStatus,
+  getMindProgramStatus,
+  getProgramEndDate,
+  getProgramStatus,
+  hardResetProgram,
+} from "./lifecycle";
 
-  const url =
-    path.startsWith("/") ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
+export type Engine = EngineRecord;
+export type EngineModule = ModuleRecord;
+export type Cycle = CycleRecord;
+export type DailyLog = DailyLogRecord;
+export type {
+  BodyWorkoutDetail,
+  CycleConsistencyResult,
+  DayColorInput,
+  DayColorResult,
+  EngineDashboardStats,
+  EngineTodayStats,
+  EngineTodayView,
+  EngineScoreResult,
+  FocusStatsResult,
+  TitanScoreResult,
+  WeeklyWorkoutStatsResult,
+};
 
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`GET ${url} failed: ${res.status} ${text}`.trim());
+export {
+  upsertExercise,
+  listExercises,
+  createTemplate,
+  listTemplates,
+  getTemplate,
+  startWorkoutFromTemplate,
+  startEmptyWorkout,
+  addExerciseToWorkout,
+  createSetWithDefaults,
+  getBodyWorkout as getWorkout,
+  finishBodyWorkout as finishWorkout,
+  updateBodyWorkoutSet as updateWorkoutSet,
+  reorderWorkoutExercises,
+  activateEngine,
+  listTasks,
+  createTask,
+  archiveTask,
+  computeDayColor,
+  listDatesForCycle,
+  chunkDates,
+  getCycleCompletionMap,
+  getEngines,
+  getEngineByName,
+  getEngineTodayView,
+  getEngineDashboardStats,
+  getOrCreateEngine,
+  getOrCreateTodayLog,
+  getModuleByName,
+  getModulesForEngine,
+  syncEngineModules,
+  setModuleActive,
+  getActiveCycles,
+  getAllCycles,
+  getPrimaryCycle,
+  canCreateCycle,
+  createCycle,
+  createGymCycle,
+  setPrimaryCycle,
+  archiveCycle,
+  extendCycle,
+  logDaily,
+  computeTodayStats,
+  toggleTaskForToday,
+  calculateCycleConsistency,
+  calculateEngineScore,
+  calculateTitanScore,
+  addFocusSession,
+  getFocusStats,
+  getTodaysFocusUnits,
+  getTodayCoreCompletionStatus,
+  addSet,
+  createWorkout,
+  getBodyWorkouts as getWorkouts,
+  getBodyWorkoutDetail as getWorkoutDetail,
+  getTodaysWorkoutCount,
+  getWeeklyWorkoutStats,
+  setActiveSkill,
+  getSkills,
+  addSkillSession,
+  getWeeklySkillMinutes,
+  getTodaysSkillMinutes,
+  getActiveMindProgram,
+  getMindProgramProgress,
+  getMindProgramEndDate,
+  createMindProgram,
+  archiveMindProgram,
+  extendMindProgram,
+  hardResetMindProgram,
+  listMindTasks,
+  listMindRules,
+  getMindRuleViolationsForDate,
+  logMindRuleViolation,
+  updateMindRuleViolationNote,
+  getMindDayLog,
+  getMindJournal,
+  getMindJournalEntry,
+  getMindFocusTotal,
+  getMindFocusSessionsForDate,
+  getMindFocusMinutesForDate,
+  getMindCompletionForDate,
+  getMindConsistencyForRange,
+  getMindRangeSummary,
+  toggleMindTaskForDate,
+  setMindTaskCompletion,
+  upsertMindMorningJournal,
+  upsertMindEveningJournal,
+  evaluateMindAutoCompletions,
+  addMindFocusSession,
+  getMindDailyState,
+  getMindActiveProgramView,
+  getMindProgramById,
+  getMindFocusStats,
+  generateAdaptiveMindFeedback,
+  generateDailyMindFeedback,
+  generateWeeklyMindFeedback,
+  listMindWeeklyReviews,
+  getPendingWeeklyReview,
+  saveMindWeeklyReview,
+  computeMindProgramDayIndex,
+  dayIndexFromProgram,
+  isMindProgramDateInRange,
+  canFillEveningJournal,
+  archiveProgram,
+  extendProgram,
+  hardResetProgram,
+  getProgramStatus,
+  getBodyProgramStatus,
+  getMindProgramStatus,
+  getProgramEndDate,
+  createProgram,
+  getActiveProgram,
+  getProgramsByEngine,
+  getProgramById,
+  endProgram,
+  extendProgramV2,
+  getProgramTimeline,
+  ensureEngineProgram,
+  listProgramTasksV2,
+  addTaskV2,
+  toggleTaskActiveV2,
+  toggleTaskCompleteV2,
+  getDayTaskStats,
+  addNutritionLog,
+  getNutritionLogsForDate,
+  getNutritionTotalsForDate,
+  getWindow,
+  getWindowSquares,
+  getDayIndex,
+  getProgramAverageConsistency,
+};
+
+export async function fetchEngines(options?: { active_only?: boolean }): Promise<Engine[]> {
+  if (options?.active_only) {
+    return db.engines.filter((engine) => engine.is_active).toArray();
   }
-  return res.json();
+  return getEngines();
 }
 
-export async function getQuests() {
-  const res = await fetch("http://localhost:8000/quests");
-  return res.json();
+export async function fetchModules(
+  engine_id: number,
+  options?: { active_only?: boolean },
+): Promise<EngineModule[]> {
+  let modules = await getModulesForEngine(engine_id);
+  if (options?.active_only) {
+    modules = modules.filter((moduleItem) => moduleItem.is_active);
+  }
+  return modules;
 }
 
-export async function completeQuest(id: string) {
-  await fetch(`http://localhost:8000/quests/${id}/complete`, {
-    method: "POST",
-  });
+export async function fetchCycles(
+  engine_id: number,
+  options?: { active_only?: boolean; primary_only?: boolean; module_id?: number | null },
+): Promise<Cycle[]> {
+  let cycles = options?.active_only
+    ? await getActiveCycles(engine_id, options.module_id)
+    : await getAllCycles(engine_id, options?.module_id);
+  if (options?.primary_only) {
+    cycles = cycles.filter((cycleItem) => cycleItem.is_primary);
+  }
+  return cycles;
+}
+
+export async function fetchDailyLogs(cycle_id: number): Promise<DailyLog[]> {
+  return db.daily_logs.where("cycle_id").equals(cycle_id).toArray();
 }
