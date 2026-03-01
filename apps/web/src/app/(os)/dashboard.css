@@ -9,14 +9,7 @@
 }
 
 html[data-theme="hud"] body.tp-os-flat {
-  background: radial-gradient(1200px 900px at 50% -20%, rgba(255, 255, 255, 0.04), transparent 65%), var(--os-bg);
   color: var(--os-text);
-}
-
-html[data-theme="hud"] body.tp-os-flat::before,
-html[data-theme="hud"] body.tp-os-flat::after {
-  content: none !important;
-  display: none !important;
 }
 
 html[data-theme="hud"] body.tp-os-flat .chrome-panel {

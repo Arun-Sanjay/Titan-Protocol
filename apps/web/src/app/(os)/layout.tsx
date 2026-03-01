@@ -1,4 +1,5 @@
 import "../globals.css";
+import "./os.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export default function OSLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="tp-os-flat min-h-screen antialiased font-mono">{children}</body>
+      <body className="tp-os tp-os-flat min-h-screen antialiased font-mono">{children}</body>
     </html>
   );
 }
