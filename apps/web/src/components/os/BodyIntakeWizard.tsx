@@ -217,7 +217,7 @@ export function BodyIntakeWizard({ initialTimeframe = 90 }: { initialTimeframe?:
           <h1 className="hud-title text-3xl font-bold md:text-4xl">Body Intake</h1>
           <p className="mt-2 text-sm text-white/70">Answer these to generate your Body tasks and start your cycle.</p>
         </div>
-        <Link href="/os/body/settings" className="chrome-btn px-3 py-1.5 text-sm text-white">
+        <Link href="/os/body" className="chrome-btn px-3 py-1.5 text-sm text-white">
           Back
         </Link>
       </header>
