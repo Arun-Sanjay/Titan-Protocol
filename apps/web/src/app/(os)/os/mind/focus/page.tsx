@@ -129,9 +129,9 @@ export default function MindFocusPage() {
       {!loading && !programId ? (
         <section className="hud-panel p-5">
           <p className="text-sm text-white/75">No active Mind cycle.</p>
-          <p className="mt-2 text-xs text-white/60">Set up your Plan in Settings. You can change this after archiving.</p>
-          <Link href="/os/settings" className="hud-btn mt-3 inline-flex px-3 py-1.5 text-sm text-white">
-            Open Settings
+          <p className="mt-2 text-xs text-white/60">Create your Mind cycle first, then return to this tool.</p>
+          <Link href="/os/mind/setup" className="hud-btn mt-3 inline-flex px-3 py-1.5 text-sm text-white">
+            Set Up Mind
           </Link>
         </section>
       ) : null}

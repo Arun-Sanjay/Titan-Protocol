@@ -442,6 +442,62 @@ html[data-theme="hud"] .hud-panel {
   backdrop-filter: blur(14px);
 }
 
+html[data-theme="hud"] .hud-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01) 40%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 62%),
+    rgba(8, 10, 16, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.07) inset,
+    0 14px 44px rgba(0, 0, 0, 0.7),
+    0 0 36px rgba(195, 215, 255, 0.08);
+  backdrop-filter: blur(12px);
+  padding: 1.25rem;
+}
+
+html[data-theme="hud"] .hud-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 18px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 22px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 24px
+    );
+  opacity: 0.5;
+}
+
+html[data-theme="hud"] .hud-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: rgba(245, 248, 255, 0.95);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-theme="hud"] .hud-section-title {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 248, 255, 0.6);
+}
+
 html[data-theme="hud"] .hud-panel::before {
   content: "";
   position: absolute;

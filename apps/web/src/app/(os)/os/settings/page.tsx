@@ -4,7 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 
 import { db, TITAN_TABLES, type TitanBackup } from "../../../../lib/db";
-import { archiveCycle, extendCycle, getEngines, getPrimaryCycle } from "../../../../lib/api";
+import {
+  archiveCycle,
+  calculateCycleConsistency,
+  createCycle,
+  extendCycle,
+  getEngines,
+  getPrimaryCycle,
+} from "../../../../lib/api";
 
 async function exportBackup(): Promise<TitanBackup> {
   return {
@@ -111,20 +118,26 @@ export default function SettingsPage() {
       cycleId: number | null;
       cycleTitle: string;
       cycleLength: number;
+      cycleStartDate: string | null;
+      dayIndex: number;
     }>
   >([]);
+  const [newCycleLengthByEngine, setNewCycleLengthByEngine] = React.useState<Record<number, number>>({});
 
   const loadCycleRows = React.useCallback(async () => {
     const engines = await getEngines();
     const rows = await Promise.all(
       engines.map(async (engine) => {
         const primary = engine.id ? await getPrimaryCycle(engine.id) : null;
+        const consistency = primary?.id ? await calculateCycleConsistency(primary.id) : null;
         return {
           engineId: engine.id as number,
           engineName: engine.name.toUpperCase(),
           cycleId: primary?.id ?? null,
-          cycleTitle: primary?.title ?? "No active cycle",
+          cycleTitle: primary?.title ?? "No active timeframe",
           cycleLength: primary?.duration_days ?? 0,
+          cycleStartDate: primary?.start_date ?? null,
+          dayIndex: consistency?.dayIndex ?? 0,
         };
       }),
     );
@@ -191,7 +204,7 @@ export default function SettingsPage() {
     try {
       await extendCycle(cycleId, days);
       await loadCycleRows();
-      setMessage(`Cycle extended by ${days} days.`);
+      setMessage(`Timeframe extended by ${days} days.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -200,16 +213,38 @@ export default function SettingsPage() {
   }
 
   async function handleArchiveCycle(cycleId: number) {
-    if (!window.confirm("Archive this cycle?")) return;
+    if (!window.confirm("End this timeframe now?")) return;
     setCycleBusy(cycleId);
     setError(null);
     setMessage(null);
     try {
       await archiveCycle(cycleId);
       await loadCycleRows();
-      setMessage("Cycle archived.");
+      setMessage("Timeframe archived.");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCycleBusy(null);
+    }
+  }
+
+  async function handleCreateCycle(engineId: number, engineName: string) {
+    const length = newCycleLengthByEngine[engineId] ?? 90;
+    setCycleBusy(engineId);
+    setError(null);
+    setMessage(null);
+    try {
+      await createCycle(engineId, `${engineName} ${length}D Timeframe`, length, true);
+      await loadCycleRows();
+      setMessage(`New timeframe created (${length} days).`);
+    } catch (err) {
+      const text = err instanceof Error ? err.message : String(err);
+      if (text.startsWith("ACTIVE_CYCLE_EXISTS")) {
+        const [, cycleId = "?", cycleTitle = "Active timeframe"] = text.split(":");
+        setError(`An active timeframe already exists (${cycleTitle}, #${cycleId}). Archive it before creating a new one.`);
+      } else {
+        setError(text);
+      }
     } finally {
       setCycleBusy(null);
     }
@@ -257,9 +292,9 @@ export default function SettingsPage() {
       </div>
 
       <div className="hud-panel mt-4 max-w-4xl p-5">
-        <p className="text-xs uppercase tracking-[0.18em] text-white/60">Cycle Management</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-white/60">Timeframe Management</p>
         <p className="mt-2 text-sm text-white/75">
-          Cycle length: 30 / 60 / 90 / 180 / 365 days. You can change this after archiving.
+          Timeframe length: 30 / 60 / 90 / 180 / 365 days. You can change this after archiving.
         </p>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -268,8 +303,13 @@ export default function SettingsPage() {
               <p className="text-xs uppercase tracking-[0.14em] text-white/60">{row.engineName}</p>
               <p className="mt-2 text-sm text-white">{row.cycleTitle}</p>
               <p className="mt-1 text-xs text-white/60">
-                {row.cycleLength > 0 ? `Cycle length: ${row.cycleLength} days` : "No cycle to manage"}
+                {row.cycleLength > 0 ? `Timeframe length: ${row.cycleLength} days` : "No timeframe to manage"}
               </p>
+              {row.cycleId ? (
+                <p className="mt-1 text-xs text-white/55">
+                  Start: {row.cycleStartDate ?? "—"} • Day {row.dayIndex}/{row.cycleLength}
+                </p>
+              ) : null}
               {row.cycleId ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -305,7 +345,35 @@ export default function SettingsPage() {
                     Archive
                   </button>
                 </div>
-              ) : null}
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label className="text-xs text-white/65">Timeframe length</label>
+                  <select
+                    value={newCycleLengthByEngine[row.engineId] ?? 90}
+                    onChange={(event) =>
+                      setNewCycleLengthByEngine((prev) => ({
+                        ...prev,
+                        [row.engineId]: Number(event.target.value),
+                      }))
+                    }
+                    className="rounded-md border border-white/15 bg-black/25 px-2 py-1 text-xs text-white"
+                  >
+                    {[30, 60, 90, 180, 365].map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void handleCreateCycle(row.engineId, row.engineName)}
+                    disabled={cycleBusy === row.engineId}
+                    className="chrome-btn px-3 py-1.5 text-xs text-white"
+                  >
+                    Start New Timeframe
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>

@@ -4,11 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 
 import { getActiveBodyProgram } from "../../../../../lib/body_program";
-import { addMeal, computeTotals, deleteMeal, listMealsByDate, updateMeal } from "../../../../../lib/body";
+import {
+  addMeal,
+  computeTotals,
+  deleteMeal,
+  listMealsByDate,
+  updateMeal,
+} from "../../../../../lib/body_meals";
 import { getCurrentNutritionTarget } from "../../../../../lib/nutrition";
 import type { BodyMealRecord } from "../../../../../lib/db";
 import { MealModal } from "../../../../../components/body/MealModal";
-import { CalorieCore } from "../../../../../components/body/CalorieCore";
+import { MacroRing } from "../../../../../components/body/MacroRing";
+import { MealsList } from "../../../../../components/body/MealsList";
+import { HudCard } from "../../../../../components/os/HudCard";
+import { HudButton } from "../../../../../components/os/HudButton";
 
 function todayDateString(): string {
   const now = new Date();
@@ -31,7 +40,10 @@ export default function BodyNutritionPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
 
-  const [selectedDate, setSelectedDate] = React.useState(todayDateString());
+  const [selectedDate, setSelectedDate] = React.useState(() => {
+    if (typeof window === "undefined") return todayDateString();
+    return window.localStorage.getItem("tp_body_selected_date") ?? todayDateString();
+  });
   const [programId, setProgramId] = React.useState<number | null>(null);
   const [goalCalories, setGoalCalories] = React.useState<number | null>(null);
   const [meals, setMeals] = React.useState<BodyMealRecord[]>([]);
@@ -72,6 +84,10 @@ export default function BodyNutritionPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  React.useEffect(() => {
+    window.localStorage.setItem("tp_body_selected_date", selectedDate);
+  }, [selectedDate]);
 
   async function handleAdd(payload: {
     name: string;
@@ -148,13 +164,13 @@ export default function BodyNutritionPage() {
       </header>
 
       {!programId && !loading ? (
-        <section className="chrome-panel p-5">
-          <p className="text-sm text-white/75">No active Body cycle. Set up your Plan first.</p>
+        <HudCard>
+          <p className="text-sm text-white/75">No active Body timeframe. Set up your Plan first.</p>
           <p className="mt-2 text-xs text-white/60">You can change this after archiving.</p>
-          <Link href="/os/settings" className="chrome-btn mt-3 inline-flex px-3 py-1.5 text-sm text-white">
-            Open Settings
+          <Link href="/os/body/intake?timeframe=90" className="hud-btn mt-3 inline-flex px-3 py-1.5 text-sm text-white">
+            Create Body Cycle
           </Link>
-        </section>
+        </HudCard>
       ) : null}
 
       {programId ? (
@@ -167,21 +183,12 @@ export default function BodyNutritionPage() {
               onChange={(event) => setSelectedDate(event.target.value || todayDateString())}
               className="rounded-md border border-white/15 bg-black/25 px-3 py-2 text-sm text-white"
             />
-            <button
-              type="button"
-              onClick={() => setSelectedDate(todayDateString())}
-              className="chrome-btn px-3 py-1.5 text-xs text-white"
-            >
+            <HudButton onClick={() => setSelectedDate(todayDateString())} className="px-3 py-1.5 text-xs text-white">
               Today
-            </button>
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="chrome-btn ml-auto px-3 py-1.5 text-sm text-white"
-              disabled={saving}
-            >
+            </HudButton>
+            <HudButton onClick={() => setAddOpen(true)} className="ml-auto px-3 py-1.5 text-sm text-white" disabled={saving}>
               Add Meal
-            </button>
+            </HudButton>
           </section>
 
           {error ? (
@@ -194,66 +201,37 @@ export default function BodyNutritionPage() {
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-            <section className="chrome-panel p-5">
-              <h2 className="mb-3 text-lg font-semibold text-white">Totals</h2>
-              <CalorieCore
+            <HudCard title="Totals">
+              <MacroRing
                 calories={totals.calories}
                 goalCalories={goalCalories}
                 protein={totals.protein}
                 carbs={totals.carbs}
                 fat={totals.fat}
               />
-            </section>
+            </HudCard>
 
-            <section className="chrome-panel p-5">
+            <HudCard
+              title="Meals"
+              rightSlot={<span className="text-xs uppercase tracking-[0.14em] text-white/60">{selectedDate}</span>}
+            >
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-white">Meals</h2>
-                <span className="text-xs uppercase tracking-[0.14em] text-white/60">{selectedDate}</span>
+                <span className="text-xs text-white/70">Add, edit, or delete meals for this date.</span>
               </div>
 
               {loading ? <p className="text-sm text-white/65">Loading meals...</p> : null}
-              {!loading && meals.length === 0 ? (
-                <p className="text-sm text-white/65">No meals logged for this date.</p>
+              {!loading ? (
+                <MealsList
+                  meals={meals}
+                  saving={saving}
+                  onEdit={(meal) => {
+                    setEditingMeal(meal);
+                    setEditOpen(true);
+                  }}
+                  onDelete={(id) => void handleDelete(id)}
+                />
               ) : null}
-
-              <div className="space-y-2">
-                {meals.map((meal) => (
-                  <article
-                    key={meal.id}
-                    className="chrome-outline flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-white">{meal.name}</p>
-                      <p className="text-xs text-white/65">
-                        {meal.calories} kcal • P {meal.protein ?? "—"} • C {meal.carbs ?? "—"} • F{" "}
-                        {meal.fat ?? "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="chrome-btn px-2 py-1 text-xs text-white"
-                        onClick={() => {
-                          setEditingMeal(meal);
-                          setEditOpen(true);
-                        }}
-                        disabled={saving}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="chrome-btn px-2 py-1 text-xs text-white"
-                        onClick={() => void handleDelete(meal.id as number)}
-                        disabled={saving}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
+            </HudCard>
           </div>
         </>
       ) : null}

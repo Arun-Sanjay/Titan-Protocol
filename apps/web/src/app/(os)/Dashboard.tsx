@@ -9,6 +9,8 @@ import {
   getEngineDashboardStats,
 } from "../../lib/api";
 import { playClick } from "../../lib/sound";
+import { HudCard } from "../../components/os/HudCard";
+import { HudSectionTitle } from "../../components/os/HudSectionTitle";
 
 type TitanScoreState = Awaited<ReturnType<typeof calculateTitanScore>>;
 type EngineStatsState = Awaited<ReturnType<typeof getEngineDashboardStats>>;
@@ -102,10 +104,9 @@ export default function Dashboard() {
 
         {!loading && !error ? (
           <>
-            <div className="hud-panel p-5">
+            <HudCard title="Titan Score">
               <div className="flex items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/60">Titan Score</p>
                   <p className="mt-1 text-3xl font-semibold text-white">
                     {(score?.titanScore ?? 0).toFixed(1)}%
                   </p>
@@ -132,34 +133,32 @@ export default function Dashboard() {
                   ))
                 )}
               </div>
-            </div>
+            </HudCard>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {engineCards.map((card) => (
-                <article key={card.key} className="hud-panel p-5">
-                  <p className="text-lg font-semibold text-white">{card.label}</p>
+                <HudCard key={card.key} title={card.label}>
                   {card.isActive ? (
                     <div className="mt-3 space-y-2 text-sm text-white/85">
-                      <p>
-                        Today Completion:{" "}
+                      <div><HudSectionTitle>Today</HudSectionTitle>
                         <span className="font-semibold text-white">{card.todayPct.toFixed(0)}%</span>
-                      </p>
-                      <p>
-                        Cycle Day:{" "}
+                      </div>
+                      <div>
+                        <HudSectionTitle>Timeframe Day</HudSectionTitle>
                         <span className="font-semibold text-white">
                           {card.dayIndex}/{card.totalDays}
                         </span>
-                      </p>
-                      <p>
-                        Cycle Consistency:{" "}
+                      </div>
+                      <div>
+                        <HudSectionTitle>Consistency</HudSectionTitle>
                         <span className="font-semibold text-white">
                           {card.consistencyPct.toFixed(0)}%
                         </span>
-                      </p>
+                      </div>
                     </div>
                   ) : (
                     <p className="mt-3 min-h-16 text-sm text-white/65">
-                      Set up your Plan in Settings.
+                      Set up your Plan from the engine page.
                     </p>
                   )}
                   <Link
@@ -169,7 +168,7 @@ export default function Dashboard() {
                   >
                     Open
                   </Link>
-                </article>
+                </HudCard>
               ))}
             </div>
           </>

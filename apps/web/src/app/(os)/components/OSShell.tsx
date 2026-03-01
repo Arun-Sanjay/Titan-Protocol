@@ -13,7 +13,6 @@ const NAV_ITEMS = [
   { href: "/os/mind", label: "Mind", icon: "◎" },
   { href: "/os/money", label: "Money", icon: "◍" },
   { href: "/os/general", label: "General", icon: "△" },
-  { href: "/os/settings", label: "Settings", icon: "⚙" },
 ] as const;
 
 const PAGE_TITLES: Array<{ match: string; title: string }> = [
@@ -26,7 +25,6 @@ const PAGE_TITLES: Array<{ match: string; title: string }> = [
   { match: "/os/mind", title: "Mind • Today" },
   { match: "/os/money", title: "Money • Today" },
   { match: "/os/general", title: "General • Today" },
-  { match: "/os/settings", title: "Settings" },
   { match: "/os", title: "Dashboard" },
 ];
 
@@ -44,7 +42,7 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(false);
   const pageTitle = getPageTitle(pathname);
   const navItems = NAV_ITEMS;
-  const mobileItems = NAV_ITEMS.filter((item) => item.href !== "/os/settings");
+  const mobileItems = NAV_ITEMS;
 
   React.useEffect(() => {
     setIsSidebarOpen(false);
@@ -122,9 +120,6 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
             </div>
           </div>
 
-          <Link href="/os/settings" onClick={handleNavClick} className="hud-btn px-3 py-1.5 text-xs text-white">
-            Settings
-          </Link>
         </header>
 
         <PageTransition>

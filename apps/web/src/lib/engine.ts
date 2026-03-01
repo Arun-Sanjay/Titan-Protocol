@@ -977,6 +977,7 @@ async function ensureEngineTasks(engine: EngineRecord): Promise<EngineTaskRecord
       engine_id,
       title: task.title,
       is_non_negotiable: task.is_non_negotiable,
+      is_locked: task.is_non_negotiable,
       is_active: true,
       created_at: now,
     })),
@@ -1013,6 +1014,7 @@ export async function createTask(input: {
   engine_id: number;
   title: string;
   is_non_negotiable?: boolean;
+  is_locked?: boolean;
 }): Promise<EngineTaskRecord> {
   const title = normalizeName(input.title);
   if (!title) {
@@ -1022,6 +1024,7 @@ export async function createTask(input: {
     engine_id: input.engine_id,
     title,
     is_non_negotiable: Boolean(input.is_non_negotiable),
+    is_locked: input.is_locked ?? Boolean(input.is_non_negotiable),
     is_active: true,
     created_at: Date.now(),
     archived_at: null,
@@ -1037,6 +1040,9 @@ export async function archiveTask(task_id: number): Promise<void> {
   const task = await db.engine_tasks.get(task_id);
   if (!task) {
     throw new Error("Task not found");
+  }
+  if (task.is_locked) {
+    throw new Error("Locked task cannot be archived until cycle is archived");
   }
   await db.engine_tasks.update(task_id, {
     is_active: false,

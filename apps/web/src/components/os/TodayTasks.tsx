@@ -16,7 +16,11 @@ import {
 } from "../../lib/api";
 import { playClick, playComplete } from "../../lib/sound";
 import { AddTaskModal } from "./AddTaskModal";
-import { ConsistencyScroller } from "./ConsistencyScroller";
+import { AnalyticsGrid } from "./AnalyticsGrid";
+import { HudButton } from "./HudButton";
+import { HudCard } from "./HudCard";
+import { HudPill } from "./HudPill";
+import { HudSectionTitle } from "./HudSectionTitle";
 
 const ENGINE_TITLES: Record<EngineName, string> = {
   body: "Body",
@@ -74,8 +78,7 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
               nextView.cycle_length,
             )
           : {};
-      setView(nextView);
-      setView((prev) => (prev ? { ...prev, tasks } : prev));
+      setView({ ...nextView, tasks });
       setTodayLog(log);
       setCompletionMap(cycleMap);
     } catch (err) {
@@ -88,6 +91,11 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  React.useEffect(() => {
+    if (engine !== "body") return;
+    window.localStorage.setItem("tp_body_selected_date", date);
+  }, [date, engine]);
 
   async function onToggle(taskId: number) {
     if (!view?.engine.id || !todayLog) return;
@@ -189,10 +197,10 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
         <div>
           <h1 className="hud-title text-3xl font-bold md:text-4xl">{title} Today</h1>
           <p className="mt-2 text-sm text-white/70">
-            Today • Cycle Day {view?.cycle_day ?? 0}/{view?.cycle_length ?? 0} •{" "}
+            Today • Timeframe Day {view?.cycle_day ?? 0}/{view?.cycle_length ?? 0} •{" "}
             {(view?.today.today_pct ?? 0).toFixed(0)}%
           </p>
-          <p className="mt-1 text-xs text-white/55">Cycle = your current timeframe for this plan.</p>
+          <p className="mt-1 text-xs text-white/55">Timeframe = your active cycle window for this Plan.</p>
         </div>
         {tool ? (
           <Link
@@ -216,45 +224,65 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
       {!loading && !error && view ? (
         <section className="space-y-4">
           {view.cycle_start_date && view.cycle_length > 0 ? (
-            <ConsistencyScroller
-              cycleStartDate={view.cycle_start_date}
-              cycleLength={view.cycle_length}
+            <AnalyticsGrid
+              startDate={view.cycle_start_date}
+              totalDays={view.cycle_length}
               selectedDate={date}
-              todayDate={todayDateString()}
-              completionMap={completionMap}
+              today={todayDateString()}
+              getDayScore={(day) => {
+                const score = completionMap[day] ?? {
+                  nonneg_done: 0,
+                  nonneg_total: 0,
+                  total_done: 0,
+                  total_total: 0,
+                };
+                return {
+                  nonNegotiablesDone: score.nonneg_done,
+                  nonNegotiablesTotal: score.nonneg_total,
+                  optionalDone: Math.max(0, score.total_done - score.nonneg_done),
+                  optionalTotal: Math.max(0, score.total_total - score.nonneg_total),
+                  isFuture: day > todayDateString(),
+                };
+              }}
               onSelectDate={setDate}
             />
           ) : null}
 
           {view.cycle_length === 0 ? (
-            <article className="chrome-panel p-4">
-              <p className="text-sm text-white/80">
-                Set up your Plan in Settings. You can change this after archiving.
-              </p>
-              <Link
-                href="/os/settings"
-                onClick={playClick}
-                className="chrome-btn mt-3 inline-flex px-3 py-2 text-sm text-white"
-              >
-                Open Settings
-              </Link>
-            </article>
+            <HudCard>
+              {engine === "body" ? (
+                <>
+                  <p className="text-sm text-white/80">
+                    No active Body cycle. Create one to start your non-negotiables and daily tasks.
+                  </p>
+                  <Link
+                    href="/os/body/intake?timeframe=90"
+                    onClick={playClick}
+                    className="hud-btn mt-4 inline-flex px-4 py-2 text-sm text-white"
+                  >
+                    Create Body Cycle
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-white/80">No active cycle for this engine yet.</p>
+              )}
+            </HudCard>
           ) : null}
 
-          <article className="chrome-panel p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <HudCard
+            title="Today Completion"
+            rightSlot={<HudPill>{date}</HudPill>}
+          >
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="text-xs uppercase tracking-[0.14em] text-white/65">Today Completion</p>
+                <HudSectionTitle>Tasks Done</HudSectionTitle>
                 <p className="mt-1 text-2xl font-semibold text-white">
-                  {view.today.completed_tasks_today}/{view.today.total_active_tasks} (
-                  {view.today.today_pct.toFixed(0)}%)
+                  {view.today.completed_tasks_today}/{view.today.total_active_tasks} ({view.today.today_pct.toFixed(0)}%)
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs uppercase tracking-[0.14em] text-white/65">Cycle Consistency</p>
-                <p className="mt-1 text-2xl font-semibold text-white">
-                  {view.cycle_consistency_pct.toFixed(0)}%
-                </p>
+              <div className="text-left sm:text-right">
+                <HudSectionTitle>Timeframe Consistency</HudSectionTitle>
+                <p className="mt-1 text-2xl font-semibold text-white">{view.cycle_consistency_pct.toFixed(0)}%</p>
               </div>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
@@ -263,21 +291,21 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
                 style={{ width: `${view.today.today_pct}%` }}
               />
             </div>
-          </article>
+          </HudCard>
 
-          <article className="chrome-panel p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Tasks</h2>
+          <HudCard
+            title="Tasks"
+            rightSlot={
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.12em] text-white/60">{date}</span>
-                <button
-                  type="button"
-                  className="chrome-btn px-2 py-1 text-xs text-white"
-                  onClick={() => setShowAddModal(true)}
-                >
+                <HudPill>{date}</HudPill>
+                <HudButton className="px-2 py-1 text-xs text-white" onClick={() => setShowAddModal(true)}>
                   Add Task
-                </button>
+                </HudButton>
               </div>
+            }
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <HudSectionTitle>Equal-weight scoring: completed / total</HudSectionTitle>
             </div>
 
             {nonNegotiables.length > 0 ? (
@@ -297,28 +325,32 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
                       />
                       <span>{task.title}</span>
                     </label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="chrome-btn px-2 py-1 text-xs text-white"
-                        onClick={() =>
-                          setTaskActionId((prev) => (prev === task.id ? null : (task.id as number)))
-                        }
-                      >
-                        ...
-                      </button>
-                      {taskActionId === task.id ? (
-                        <div className="chrome-panel absolute right-0 top-9 z-20 min-w-[120px] p-2">
-                          <button
-                            type="button"
-                            className="w-full rounded px-2 py-1 text-left text-xs text-white/85 hover:bg-white/10"
-                            onClick={() => void onArchiveTask(task)}
-                          >
-                            Archive task
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
+                    {!task.is_locked ? (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="hud-btn px-2 py-1 text-xs text-white"
+                          onClick={() =>
+                            setTaskActionId((prev) => (prev === task.id ? null : (task.id as number)))
+                          }
+                        >
+                          ...
+                        </button>
+                        {taskActionId === task.id ? (
+                          <div className="hud-card absolute right-0 top-9 z-20 min-w-[120px] p-2">
+                            <button
+                              type="button"
+                              className="w-full rounded px-2 py-1 text-left text-xs text-white/85 hover:bg-white/10"
+                              onClick={() => void onArchiveTask(task)}
+                            >
+                              Archive task
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-white/50">Locked</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -344,7 +376,7 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
                     <div className="relative">
                       <button
                         type="button"
-                        className="chrome-btn px-2 py-1 text-xs text-white"
+                        className="hud-btn px-2 py-1 text-xs text-white"
                         onClick={() =>
                           setTaskActionId((prev) => (prev === task.id ? null : (task.id as number)))
                         }
@@ -352,7 +384,7 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
                         ...
                       </button>
                       {taskActionId === task.id ? (
-                        <div className="chrome-panel absolute right-0 top-9 z-20 min-w-[120px] p-2">
+                        <div className="hud-card absolute right-0 top-9 z-20 min-w-[120px] p-2">
                           <button
                             type="button"
                             className="w-full rounded px-2 py-1 text-left text-xs text-white/85 hover:bg-white/10"
@@ -370,7 +402,7 @@ export function TodayTasks({ engine }: { engine: EngineName }) {
               )}
             </div>
             {info ? <p className="mt-3 text-xs text-white/60">{info}</p> : null}
-          </article>
+          </HudCard>
         </section>
       ) : null}
 

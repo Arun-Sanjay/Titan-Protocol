@@ -116,6 +116,7 @@ export interface EngineTaskRecord {
   engine_id: number;
   title: string;
   is_non_negotiable: boolean;
+  is_locked?: boolean;
   is_active: boolean;
   created_at: number;
   archived_at?: number | null;

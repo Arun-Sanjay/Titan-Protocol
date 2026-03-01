@@ -4,8 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { playClick } from "../../lib/sound";
 
-const BOOT_SEEN_KEY = "tp_boot_seen_v1";
-
 const NAV_ITEMS = ["Dashboard", "Body", "Mind", "Money", "General"] as const;
 const SCORE_BARS = [
   { label: "Body", value: 48 },
@@ -18,23 +16,11 @@ export default function MarketingBootPage() {
   const router = useRouter();
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
-  const [checkedBootFlag, setCheckedBootFlag] = React.useState(false);
-  const [redirecting, setRedirecting] = React.useState(false);
   const [readyToEnter, setReadyToEnter] = React.useState(false);
   const [needsTapToPlay, setNeedsTapToPlay] = React.useState(false);
 
   React.useEffect(() => {
-    const seen = window.localStorage.getItem(BOOT_SEEN_KEY) === "1";
-    if (seen) {
-      setRedirecting(true);
-      router.replace("/os");
-      return;
-    }
-    setCheckedBootFlag(true);
-  }, [router]);
-
-  React.useEffect(() => {
-    if (!checkedBootFlag || redirecting || readyToEnter) return;
+    if (readyToEnter) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -55,7 +41,7 @@ export default function MarketingBootPage() {
     return () => {
       cancelled = true;
     };
-  }, [checkedBootFlag, redirecting, readyToEnter]);
+  }, [readyToEnter]);
 
   const handleTapToPlay = React.useCallback(async () => {
     const video = videoRef.current;
@@ -76,7 +62,6 @@ export default function MarketingBootPage() {
 
   const handleEnter = React.useCallback(() => {
     playClick();
-    window.localStorage.setItem(BOOT_SEEN_KEY, "1");
     router.push("/os");
   }, [router]);
 
@@ -90,10 +75,6 @@ export default function MarketingBootPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [readyToEnter, handleEnter]);
-
-  if (redirecting) {
-    return <main className="tpBootRoot" aria-hidden="true" />;
-  }
 
   return (
     <main className="tpBootRoot">
@@ -122,7 +103,7 @@ export default function MarketingBootPage() {
           </div>
           <div className="tpTopRight">
             <span className="badge-chrome">BOOT SEQUENCE</span>
-            <button type="button" className="chrome-btn tpSkip" onClick={handleSkip} disabled={!checkedBootFlag}>
+            <button type="button" className="chrome-btn tpSkip" onClick={handleSkip}>
               SKIP
             </button>
           </div>
