@@ -1,178 +1,78 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 
-import type { EngineName } from "../../lib/db";
-import {
-  calculateTitanScore,
-  getEngineDashboardStats,
-} from "../../lib/api";
 import { playClick } from "../../lib/sound";
-import { HudCard } from "../../components/os/HudCard";
-import { HudSectionTitle } from "../../components/os/HudSectionTitle";
-
-type TitanScoreState = Awaited<ReturnType<typeof calculateTitanScore>>;
-type EngineStatsState = Awaited<ReturnType<typeof getEngineDashboardStats>>;
 
 type EngineCardModel = {
-  key: EngineName;
+  key: "body" | "mind" | "money" | "general";
   label: string;
   route: string;
-  todayPct: number;
-  dayIndex: number;
-  totalDays: number;
-  consistencyPct: number;
-  isActive: boolean;
+  scorePct: number;
+  planLabel: string;
+  dayLabel: string;
 };
 
-const ENGINE_KEYS: EngineName[] = ["body", "mind", "money", "general"];
-
-const ENGINE_LABELS: Record<EngineName, string> = {
-  body: "Body",
-  mind: "Mind",
-  money: "Money",
-  general: "General",
-};
-
-const ENGINE_ROUTES: Record<EngineName, string> = {
-  body: "/os/body",
-  mind: "/os/mind",
-  money: "/os/money",
-  general: "/os/general",
-};
+const ENGINE_CARDS: EngineCardModel[] = [
+  { key: "body", label: "Body", route: "/os/body", scorePct: 0, planLabel: "Plan: Not set up", dayLabel: "Day 0/0" },
+  { key: "mind", label: "Mind", route: "/os/mind", scorePct: 0, planLabel: "Plan: Not set up", dayLabel: "Day 0/0" },
+  { key: "money", label: "Money", route: "/os/money", scorePct: 0, planLabel: "Plan: Not set up", dayLabel: "Day 0/0" },
+  { key: "general", label: "General", route: "/os/general", scorePct: 0, planLabel: "Plan: Not set up", dayLabel: "Day 0/0" },
+];
 
 export default function Dashboard() {
-  const [score, setScore] = React.useState<TitanScoreState | null>(null);
-  const [engineCards, setEngineCards] = React.useState<EngineCardModel[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const loadDashboard = React.useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextScore, stats] = await Promise.all([
-        calculateTitanScore(),
-        Promise.all(ENGINE_KEYS.map((engineName) => getEngineDashboardStats(engineName))),
-      ]);
-
-      const statsMap = new Map(stats.map((item) => [item.engineName, item] as const));
-      const cards = ENGINE_KEYS.map((key): EngineCardModel => {
-        const engineStats: EngineStatsState | undefined = statsMap.get(key);
-        return {
-          key,
-          label: ENGINE_LABELS[key],
-          route: ENGINE_ROUTES[key],
-          todayPct: engineStats?.todayCompletionPct ?? 0,
-          dayIndex: engineStats?.dayIndex ?? 0,
-          totalDays: engineStats?.totalDays ?? 0,
-          consistencyPct: engineStats?.consistencyPct ?? 0,
-          isActive: engineStats?.isActive ?? false,
-        };
-      });
-
-      setScore(nextScore);
-      setEngineCards(cards);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
-
-  const activeBreakdown = score?.breakdown ?? [];
-
   return (
-    <main className="hud-root w-full px-2 py-2 sm:px-4 sm:py-4">
-      <header className="mb-6">
-        <h1 className="hud-title text-3xl font-bold md:text-4xl">Titan Protocol OS</h1>
+    <main className="tp-dash w-full px-2 py-2 sm:px-4 sm:py-4">
+      <header className="mb-7">
+        <p className="tp-kicker">Titan Protocol</p>
+        <h1 className="tp-title">Titan Protocol OS</h1>
+        <p className="tp-subtitle">Command overview for Body, Mind, Money, and General engines.</p>
       </header>
 
       <section className="space-y-5">
-        {loading ? <p className="text-white/80">Loading dashboard...</p> : null}
-
-        {!loading && error ? (
-          <p className="rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-100">
-            {error}
-          </p>
-        ) : null}
-
-        {!loading && !error ? (
-          <>
-            <HudCard title="Titan Score">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <p className="mt-1 text-3xl font-semibold text-white">
-                    {(score?.titanScore ?? 0).toFixed(1)}%
-                  </p>
-                </div>
-                <p className="text-xs text-white/60">Active Engines: {score?.activeEnginesCount ?? 0}</p>
-              </div>
-              <div className="mt-4 space-y-3">
-                {activeBreakdown.length === 0 ? (
-                  <p className="text-sm text-white/65">No active engines yet.</p>
-                ) : (
-                  activeBreakdown.map((item) => (
-                    <div key={item.engineName}>
-                      <div className="mb-1 flex items-center justify-between text-xs text-white/75">
-                        <span>{item.engineName.toUpperCase()}</span>
-                        <span>{item.score.toFixed(1)}%</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-white/70 transition-all duration-300"
-                          style={{ width: `${Math.max(0, Math.min(100, item.score))}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </HudCard>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {engineCards.map((card) => (
-                <HudCard key={card.key} title={card.label}>
-                  {card.isActive ? (
-                    <div className="mt-3 space-y-2 text-sm text-white/85">
-                      <div><HudSectionTitle>Today</HudSectionTitle>
-                        <span className="font-semibold text-white">{card.todayPct.toFixed(0)}%</span>
-                      </div>
-                      <div>
-                        <HudSectionTitle>Timeframe Day</HudSectionTitle>
-                        <span className="font-semibold text-white">
-                          {card.dayIndex}/{card.totalDays}
-                        </span>
-                      </div>
-                      <div>
-                        <HudSectionTitle>Consistency</HudSectionTitle>
-                        <span className="font-semibold text-white">
-                          {card.consistencyPct.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="mt-3 min-h-16 text-sm text-white/65">
-                      Set up your Plan from the engine page.
-                    </p>
-                  )}
-                  <Link
-                    href={card.route}
-                    onClick={playClick}
-                    className="hud-btn mt-4 inline-flex w-full items-center justify-center px-3 py-2 text-sm font-semibold text-white"
-                  >
-                    Open
-                  </Link>
-                </HudCard>
-              ))}
+        <article className="tp-panel p-5 sm:p-6">
+          <div className="tp-panel-head">
+            <div>
+              <p className="tp-kicker">Titan Score</p>
+              <p className="tp-score-value">0.0%</p>
             </div>
-          </>
-        ) : null}
+            <p className="tp-muted">0/4 engines active</p>
+          </div>
+
+          <div className="tp-score-grid mt-5">
+            {ENGINE_CARDS.map((item) => (
+              <div key={item.key} className="tp-score-row">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-white/72">
+                  <span className="tracking-[0.18em]">{item.label.toUpperCase()}</span>
+                  <span>{item.scorePct.toFixed(1)}%</span>
+                </div>
+                <div className="tp-progress">
+                  <span style={{ width: `${Math.max(0, Math.min(100, item.scorePct))}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <div className="tp-engine-grid">
+          {ENGINE_CARDS.map((card) => (
+            <article key={card.key} className="tp-tile">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="tp-tile-title">{card.label}</h2>
+                <p className="tp-tile-score">{card.scorePct.toFixed(0)}%</p>
+              </div>
+              <p className="tp-line mt-3">{card.planLabel}</p>
+              <p className="tp-line">{card.dayLabel}</p>
+              <Link
+                href={card.route}
+                onClick={playClick}
+                className="tp-button"
+              >
+                Enter
+              </Link>
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   );

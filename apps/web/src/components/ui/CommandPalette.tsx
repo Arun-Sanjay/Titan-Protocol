@@ -18,12 +18,11 @@ export function CommandPalette() {
 
   const actions = React.useMemo<CommandAction[]>(
     () => [
+      { id: "dashboard", label: "Go to Dashboard", run: () => router.push("/os") },
       { id: "body", label: "Go to Body", run: () => router.push("/os/body") },
       { id: "mind", label: "Go to Mind", run: () => router.push("/os/mind") },
       { id: "money", label: "Go to Money", run: () => router.push("/os/money") },
       { id: "general", label: "Go to General", run: () => router.push("/os/general") },
-      { id: "add-meal", label: "Add Meal", run: () => router.push("/os/body/nutrition") },
-      { id: "log-today", label: "Log Today", run: () => router.push("/os/body") },
     ],
     [router],
   );
@@ -55,7 +54,7 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-[120] flex items-start justify-center bg-black/60 px-4 pt-[12vh]">
       <Command
         label="Titan OS Command Palette"
-        className="hud-panel w-full max-w-xl overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-2xl"
+        className="hud-panel w-full max-w-xl overflow-hidden rounded-md border border-white/20 bg-black/90 shadow-none"
       >
         <Command.Input
           autoFocus
@@ -69,7 +68,7 @@ export function CommandPalette() {
               <Command.Item
                 key={action.id}
                 onSelect={() => runAction(action)}
-                className="cursor-pointer rounded-md px-3 py-2 text-sm text-white/85 outline-none transition hover:bg-white/10 data-[selected=true]:bg-white/15"
+                className="cursor-pointer rounded-sm px-3 py-2 text-sm text-white/85 outline-none transition hover:bg-white/8 data-[selected=true]:bg-white/12"
               >
                 {action.label}
               </Command.Item>

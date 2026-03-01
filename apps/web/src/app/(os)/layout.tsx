@@ -14,7 +14,7 @@ export default function OSLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="min-h-screen antialiased font-mono">{children}</body>
+      <body className="tp-os-flat min-h-screen antialiased font-mono">{children}</body>
     </html>
   );
 }
