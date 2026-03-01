@@ -1,11 +1,10 @@
 :root[data-theme="hud"] {
-  --os-bg: #0a0a0a;
-  --os-panel: rgba(255, 255, 255, 0.02);
-  --os-panel-soft: rgba(255, 255, 255, 0.015);
-  --os-border: rgba(255, 255, 255, 0.1);
-  --os-border-strong: rgba(255, 255, 255, 0.2);
+  --titan-bg: #050505;
+  --titan-card: #0b0b0d;
+  --titan-border: rgba(255, 255, 255, 0.08);
+  --titan-soft-border: rgba(255, 255, 255, 0.04);
+  --titan-text-dim: rgba(255, 255, 255, 0.55);
   --os-text: rgba(245, 248, 255, 0.92);
-  --os-text-dim: rgba(245, 248, 255, 0.6);
 }
 
 html[data-theme="hud"] body.tp-os-flat {
@@ -14,9 +13,9 @@ html[data-theme="hud"] body.tp-os-flat {
 
 html[data-theme="hud"] body.tp-os-flat .chrome-panel {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: var(--os-panel);
-  box-shadow: none;
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   backdrop-filter: none;
 }
 
@@ -28,24 +27,31 @@ html[data-theme="hud"] body.tp-os-flat .chrome-panel::after {
 
 html[data-theme="hud"] body.tp-os-flat .hud-btn {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: none;
+  border: 1px solid var(--titan-border);
+  background: #0c0c0e;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 html[data-theme="hud"] body.tp-os-flat .hud-btn:hover {
-  border-color: var(--os-border-strong);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #141418;
   transform: none;
   box-shadow: none;
 }
 
 html[data-theme="hud"] body.tp-os-flat .hud-panel {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: rgba(8, 8, 8, 0.95);
-  box-shadow: none;
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   backdrop-filter: none;
+}
+
+html[data-theme="hud"] body.tp-os-flat .titan-card {
+  border-radius: 8px;
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .tp-os-shell {
@@ -62,8 +68,9 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   width: 280px;
   max-width: calc(100vw - 32px);
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: var(--os-panel-soft);
+  border: 1px solid var(--titan-soft-border);
+  border-right: 1px solid var(--titan-soft-border);
+  background: #070707;
   box-shadow: none;
   backdrop-filter: none;
   padding: 14px;
@@ -100,7 +107,7 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   margin-top: 6px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
   font-size: 10px;
 }
 
@@ -116,8 +123,8 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   min-height: 40px;
   border-radius: 8px;
   padding: 8px 10px;
-  border: 1px solid var(--os-border);
-  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0c0c0e;
   color: rgba(245, 248, 255, 0.8);
   font-size: 12px;
   letter-spacing: 0.02em;
@@ -125,14 +132,14 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 }
 
 .tp-nav-item:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.1);
   color: rgba(245, 248, 255, 0.95);
-  background: rgba(255, 255, 255, 0.04);
+  background: #141418;
 }
 
 .tp-nav-item.is-active {
-  border-color: var(--os-border-strong);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #111114;
   color: rgba(245, 248, 255, 0.98);
 }
 
@@ -148,8 +155,8 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 
 .tp-topbar {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: var(--os-panel-soft);
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
   box-shadow: none;
   backdrop-filter: none;
   padding: 12px 14px;
@@ -160,7 +167,7 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
 }
 
 .tp-topbar-title {
@@ -178,7 +185,7 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
 }
 
 .tp-title {
@@ -192,15 +199,15 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 
 .tp-subtitle {
   margin-top: 10px;
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
   font-size: 13px;
 }
 
 .tp-panel {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: var(--os-panel);
-  box-shadow: none;
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   backdrop-filter: none;
 }
 
@@ -234,22 +241,22 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 }
 
 .tp-muted {
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
   font-size: 12px;
 }
 
 .tp-progress {
-  height: 2px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.18);
+  height: 6px;
+  border-radius: 4px;
+  background: #141414;
   overflow: hidden;
 }
 
 .tp-progress > span {
   display: block;
   height: 100%;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.86);
+  border-radius: 4px;
+  background: #e6e6e6;
 }
 
 .tp-engine-grid {
@@ -260,9 +267,9 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 
 .tp-tile {
   border-radius: 8px;
-  border: 1px solid var(--os-border);
-  background: var(--os-panel-soft);
-  box-shadow: none;
+  border: 1px solid var(--titan-border);
+  background: var(--titan-card);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   padding: 14px;
   transition: border-color 120ms ease, background 120ms ease;
 }
@@ -272,8 +279,8 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 }
 
 .tp-tile:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #101012;
   transform: none;
   box-shadow: none;
 }
@@ -293,7 +300,7 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
 .tp-line {
   margin-top: 7px;
   font-size: 12px;
-  color: var(--os-text-dim);
+  color: var(--titan-text-dim);
 }
 
 .tp-button {
@@ -305,19 +312,19 @@ html[data-theme="hud"] body.tp-os-flat .hud-panel {
   min-height: 40px;
   border-radius: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--os-border);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0c0c0e;
   color: var(--os-text);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 
 .tp-button:hover {
-  border-color: var(--os-border-strong);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #141418;
   transform: none;
   box-shadow: none;
 }

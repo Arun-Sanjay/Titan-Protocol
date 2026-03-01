@@ -30,7 +30,7 @@ export default function Dashboard() {
       </header>
 
       <section className="space-y-5">
-        <article className="tp-panel p-5 sm:p-6">
+        <article className="tp-panel titan-card p-5 sm:p-6">
           <div className="tp-panel-head">
             <div>
               <p className="tp-kicker">Titan Score</p>
@@ -56,7 +56,7 @@ export default function Dashboard() {
 
         <div className="tp-engine-grid">
           {ENGINE_CARDS.map((card) => (
-            <article key={card.key} className="tp-tile">
+            <article key={card.key} className="tp-tile titan-card">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="tp-tile-title">{card.label}</h2>
                 <p className="tp-tile-score">{card.scorePct.toFixed(0)}%</p>

@@ -48,7 +48,7 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
     <div className="tp-os-shell">
       <CommandPalette />
 
-      <aside className="tp-nav tp-nav-desktop hidden lg:flex lg:flex-col">
+      <aside className="tp-nav tp-nav-desktop titan-card hidden lg:flex lg:flex-col">
         <div className="tp-nav-header">
           <p className="tp-nav-title">Titan OS</p>
           <p className="tp-nav-sub">Navigation</p>
