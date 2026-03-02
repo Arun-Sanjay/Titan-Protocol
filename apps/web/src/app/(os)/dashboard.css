@@ -1,9 +1,14 @@
 :root[data-theme="hud"] {
   --titan-bg: #050505;
-  --titan-card: #0b0b0d;
+  --titan-card: rgba(11, 11, 13, 0.92);
+  --titan-card-elevated: rgba(13, 13, 16, 0.94);
   --titan-border: rgba(255, 255, 255, 0.08);
   --titan-soft-border: rgba(255, 255, 255, 0.04);
   --titan-text-dim: rgba(255, 255, 255, 0.55);
+  --titan-text-soft: rgba(255, 255, 255, 0.72);
+  --titan-radius: 10px;
+  --titan-gap: 14px;
+  --titan-shadow: 0 10px 26px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.025);
   --os-text: rgba(245, 248, 255, 0.92);
 }
 
@@ -12,10 +17,10 @@ html[data-theme="hud"] body.tp-os-flat {
 }
 
 html[data-theme="hud"] body.tp-os-flat .chrome-panel {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
   background: var(--titan-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-shadow: var(--titan-shadow);
   backdrop-filter: none;
 }
 
@@ -26,7 +31,7 @@ html[data-theme="hud"] body.tp-os-flat .chrome-panel::after {
 }
 
 html[data-theme="hud"] body.tp-os-flat .hud-btn {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
   background: #0c0c0e;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
@@ -40,18 +45,18 @@ html[data-theme="hud"] body.tp-os-flat .hud-btn:hover {
 }
 
 html[data-theme="hud"] body.tp-os-flat .hud-panel {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
   background: var(--titan-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-shadow: var(--titan-shadow);
   backdrop-filter: none;
 }
 
 html[data-theme="hud"] body.tp-os-flat .titan-card {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
   background: var(--titan-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-shadow: var(--titan-shadow);
 }
 
 .tp-os-shell {
@@ -59,7 +64,7 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
-  gap: 16px;
+  gap: var(--titan-gap);
   padding: 16px;
   padding-bottom: 32px;
 }
@@ -67,11 +72,11 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 .tp-nav {
   width: 280px;
   max-width: calc(100vw - 32px);
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-soft-border);
   border-right: 1px solid var(--titan-soft-border);
   background: #070707;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   backdrop-filter: none;
   padding: 14px;
 }
@@ -99,16 +104,16 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--os-text);
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 650;
 }
 
 .tp-nav-sub {
   margin-top: 6px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--titan-text-dim);
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .tp-nav-list {
@@ -121,30 +126,33 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
   align-items: center;
   gap: 8px;
   min-height: 40px;
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: #0c0c0e;
   color: rgba(245, 248, 255, 0.8);
   font-size: 12px;
+  line-height: 1.2;
   letter-spacing: 0.02em;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease, color 140ms ease;
 }
 
 .tp-nav-item:hover {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
   color: rgba(245, 248, 255, 0.95);
   background: #141418;
+  transform: translateY(-1px);
 }
 
 .tp-nav-item.is-active {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: #111114;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: #131317;
   color: rgba(245, 248, 255, 0.98);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .tp-nav-icon {
-  color: rgba(245, 248, 255, 0.62);
+  color: rgba(245, 248, 255, 0.66);
   font-size: 11px;
 }
 
@@ -154,26 +162,26 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 }
 
 .tp-topbar {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
   background: var(--titan-card);
-  box-shadow: none;
+  box-shadow: var(--titan-shadow);
   backdrop-filter: none;
   padding: 12px 14px;
   margin-bottom: 14px;
 }
 
 .tp-topbar-kicker {
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 9px;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--titan-text-dim);
 }
 
 .tp-topbar-title {
   margin-top: 2px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.98rem;
+  font-weight: 620;
   color: var(--os-text);
 }
 
@@ -182,32 +190,34 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 }
 
 .tp-kicker {
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: 9px;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--titan-text-dim);
+  font-weight: 600;
 }
 
 .tp-title {
   margin-top: 10px;
-  font-size: clamp(1.9rem, 4vw, 3rem);
-  letter-spacing: 0.16em;
+  font-size: clamp(1.8rem, 3.6vw, 2.75rem);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 650;
   color: var(--os-text);
 }
 
 .tp-subtitle {
   margin-top: 10px;
-  color: var(--titan-text-dim);
+  color: var(--titan-text-soft);
   font-size: 13px;
+  line-height: 1.5;
 }
 
 .tp-panel {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
-  background: var(--titan-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background: var(--titan-card-elevated);
+  box-shadow: var(--titan-shadow);
   backdrop-filter: none;
 }
 
@@ -220,7 +230,7 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
 .tp-score-grid {
@@ -234,15 +244,17 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 }
 
 .tp-score-value {
-  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-size: clamp(2.25rem, 4.4vw, 2.9rem);
   line-height: 1;
-  font-weight: 700;
+  font-weight: 650;
   color: var(--os-text);
 }
 
 .tp-muted {
   color: var(--titan-text-dim);
-  font-size: 12px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
 
 .tp-progress {
@@ -262,16 +274,16 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 .tp-engine-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .tp-tile {
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   border: 1px solid var(--titan-border);
-  background: var(--titan-card);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  padding: 14px;
-  transition: border-color 120ms ease, background 120ms ease;
+  background: var(--titan-card-elevated);
+  box-shadow: var(--titan-shadow);
+  padding: 15px;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
 }
 
 .tp-tile::before {
@@ -279,28 +291,29 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 }
 
 .tp-tile:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
   background: #101012;
-  transform: none;
+  transform: translateY(-1px);
   box-shadow: none;
 }
 
 .tp-tile-title {
-  font-size: 1.02rem;
-  font-weight: 600;
+  font-size: 1.01rem;
+  font-weight: 620;
   color: var(--os-text);
 }
 
 .tp-tile-score {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 650;
   color: var(--os-text);
 }
 
 .tp-line {
   margin-top: 7px;
   font-size: 12px;
-  color: var(--titan-text-dim);
+  line-height: 1.4;
+  color: var(--titan-text-soft);
 }
 
 .tp-button {
@@ -310,23 +323,28 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
   justify-content: center;
   width: 100%;
   min-height: 40px;
-  border-radius: 8px;
+  border-radius: var(--titan-radius);
   padding: 8px 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #0c0c0e;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0) 60%), #0e0e10;
   color: var(--os-text);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 130ms ease, background 130ms ease, color 130ms ease, transform 90ms ease;
 }
 
 .tp-button:hover {
   border-color: rgba(255, 255, 255, 0.14);
-  background: #141418;
-  transform: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0) 60%), #151518;
+  transform: translateY(-1px);
   box-shadow: none;
+}
+
+.tp-button:active {
+  transform: translateY(0);
+  background: #111113;
 }
 
 .tp-button-inline {
@@ -362,5 +380,13 @@ html[data-theme="hud"] body.tp-os-flat .titan-card {
 
   .tp-subtitle {
     font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-nav-item,
+  .tp-tile,
+  .tp-button {
+    transition: none;
   }
 }
