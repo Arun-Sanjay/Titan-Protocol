@@ -394,6 +394,34 @@ html[data-theme="hud"] body.tp-os-flat {
   color: rgba(255, 255, 255, 0.88);
 }
 
+.tp-tabs {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.tp-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.tp-tab.is-active {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 .body-task-row {
   display: flex;
   align-items: center;

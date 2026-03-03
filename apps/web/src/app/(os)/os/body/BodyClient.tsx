@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   addBodyTask,
@@ -45,6 +47,7 @@ function addDays(date: Date, delta: number): Date {
 }
 
 export default function BodyClient({ initialDate }: { initialDate: string | null }) {
+  const pathname = usePathname();
   const today = React.useMemo(() => new Date(), []);
   const initialDateKey = initialDate ?? toDateKey(today);
 
@@ -226,6 +229,20 @@ export default function BodyClient({ initialDate }: { initialDate: string | null
             <span style={{ width: `${score.percent}%` }} />
           </div>
         </section>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="tp-tabs">
+          <Link href="/os/body" className={`tp-tab ${pathname === "/os/body" ? "is-active" : ""}`}>
+            Body Engine
+          </Link>
+          <Link
+            href="/os/body/nutrition"
+            className={`tp-tab ${pathname?.startsWith("/os/body/nutrition") ? "is-active" : ""}`}
+          >
+            Nutrition
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
