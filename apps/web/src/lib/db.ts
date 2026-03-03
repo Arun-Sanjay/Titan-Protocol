@@ -20,10 +20,43 @@ export type BodyLog = {
   createdAt: number;
 };
 
+export type NutritionProfile = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  height_cm: number;
+  weight_kg: number;
+  age: number;
+  sex: "male" | "female";
+  bodyfat_pct: number | null;
+  steps_per_day: number;
+  workouts_per_week: number;
+  activity_multiplier: number;
+  goal: "cut" | "bulk" | "maintain";
+  rate_kg_per_week: 0 | 0.25 | 0.5 | 0.75 | 1;
+  calorie_target: number;
+  protein_g: number;
+  carbs_g: number | null;
+  fat_g: number | null;
+};
+
+export type NutritionMeal = {
+  id: string;
+  dateISO: string;
+  created_at: string;
+  name: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number | null;
+  fat_g: number | null;
+};
+
 class TitanBodyDB extends Dexie {
   body_meta!: Table<BodyMeta, "body">;
   body_tasks!: Table<BodyTask, number>;
   body_logs!: Table<BodyLog, number>;
+  nutrition_profiles!: Table<NutritionProfile, string>;
+  nutrition_meals!: Table<NutritionMeal, string>;
 
   constructor() {
     super("TitanProtocolBodyDB");
@@ -121,6 +154,20 @@ class TitanBodyDB extends Dexie {
           }
         }
       });
+    this.version(4).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(5).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
   }
 }
 
