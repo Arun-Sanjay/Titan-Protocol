@@ -1,27 +1,50 @@
 .tp-os {
-  position: relative;
-  background: #050505;
+  background: #0b0b0b;
   color: rgba(245, 248, 255, 0.92);
 }
 
 html[data-theme="hud"] body.tp-os::before,
 html[data-theme="hud"] body.tp-os::after {
+  content: none !important;
+}
+
+.osCanvas {
+  min-height: 100vh;
+  padding: 32px;
+  background: radial-gradient(1200px 800px at 50% 0%, rgba(255, 255, 255, 0.04), transparent 60%), #0b0b0b;
+}
+
+.osStage {
+  position: relative;
+  min-height: calc(100vh - 64px);
+  border-radius: 28px;
+  background: linear-gradient(to bottom, #050505, #030303);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 0 2px rgba(255, 255, 255, 0.02) inset,
+    0 30px 70px rgba(0, 0, 0, 0.75);
+}
+
+.osStage::before {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
+  border-radius: 28px;
   pointer-events: none;
+  background:
+    radial-gradient(1400px 900px at 50% -200px, rgba(255, 255, 255, 0.05), transparent 55%),
+    radial-gradient(1000px 700px at 50% 120%, rgba(0, 0, 0, 0.55), transparent 55%);
+  mix-blend-mode: normal;
+  opacity: 1;
 }
 
-html[data-theme="hud"] body.tp-os::before {
-  z-index: -2;
-  background-color: #050505;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
+@media (min-width: 1280px) {
+  .osCanvas {
+    padding: 40px;
+  }
 
-html[data-theme="hud"] body.tp-os::after {
-  z-index: -1;
-  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.72);
+  .osStage {
+    min-height: calc(100vh - 80px);
+  }
 }

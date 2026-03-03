@@ -4,5 +4,11 @@ import "../dashboard.css";
 export default function OSRouteLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <OSShell>{children}</OSShell>;
+  return (
+    <main className="osCanvas">
+      <div className="osStage">
+        <OSShell>{children}</OSShell>
+      </div>
+    </main>
+  );
 }
