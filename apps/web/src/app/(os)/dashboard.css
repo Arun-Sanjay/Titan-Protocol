@@ -343,36 +343,55 @@ html[data-theme="hud"] body.tp-os-flat {
 .body-heatbars {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
-  height: 64px;
+  gap: 3px;
+  height: 70px;
 }
 
 .body-heatbar {
-  width: 4px;
-  min-height: 4px;
+  width: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
+  background: currentColor;
   transition: height 0.3s ease;
 }
 
 .body-heatbar.day-grey {
-  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.12);
   box-shadow: none;
 }
 
 .body-heatbar.day-red {
-  background: rgba(255, 60, 60, 0.12);
-  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(255, 60, 60, calc(0.2 + 0.5 * var(--heat)));
+  color: rgba(255, 70, 70, calc(0.4 + 0.6 * var(--heat)));
+  box-shadow: 0 0 calc(8px + 12px * var(--heat)) currentColor;
 }
 
 .body-heatbar.day-yellow {
-  background: rgba(255, 200, 0, 0.12);
-  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(255, 200, 0, calc(0.2 + 0.5 * var(--heat)));
+  color: rgba(255, 210, 0, calc(0.35 + 0.65 * var(--heat)));
+  box-shadow: 0 0 calc(8px + 12px * var(--heat)) currentColor;
 }
 
 .body-heatbar.day-green {
-  background: rgba(70, 255, 140, 0.14);
-  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(70, 255, 140, calc(0.2 + 0.5 * var(--heat)));
+  color: rgba(60, 255, 140, calc(0.35 + 0.65 * var(--heat)));
+  box-shadow: 0 0 calc(8px + 12px * var(--heat)) currentColor;
+}
+
+.body-consistency-stack {
+  margin-top: 8px;
+  display: grid;
+  gap: 10px;
+}
+
+.body-consistency-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.body-consistency-value {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .body-task-row {

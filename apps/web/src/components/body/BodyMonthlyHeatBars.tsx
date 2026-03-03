@@ -43,7 +43,7 @@ export function BodyMonthlyHeatBars({
   scoreMap,
   startDateKey,
   todayKey,
-  maxBarHeight = 64,
+  maxBarHeight = 70,
 }: BodyMonthlyHeatBarsProps) {
   const totalDays = getDaysInMonth(visibleMonth);
 
@@ -55,7 +55,7 @@ export function BodyMonthlyHeatBars({
       const isFuture = dateKey > todayKey;
       const isBeforeStart = startDateKey ? dateKey < startDateKey : false;
       const visual = getDayVisual(dateKey, scorePct, isFuture, isBeforeStart);
-      const height = Math.round((scorePct / 100) * maxBarHeight);
+      const height = visual.state === "grey" ? 0 : Math.round((scorePct / 100) * maxBarHeight);
       return { dateKey, height, visual };
     });
   }, [maxBarHeight, scoreMap, startDateKey, todayKey, totalDays, visibleMonth]);

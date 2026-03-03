@@ -1,16 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import {
   addBodyTask,
   deleteBodyTask,
   ensureBodyMeta,
   getBodyScoreMapForRange,
-  listBodyTasksByDate,
-  toggleBodyTask,
+  getOrCreateBodyLog,
   updateBodyTaskPriority,
+  listBodyTasks,
+  toggleBodyTaskForDate,
+  renameBodyTask,
 } from "../../../../lib/body";
 import type { BodyTask } from "../../../../lib/db";
 import { computeBodyDayScore } from "../../../../lib/bodyScore";
@@ -44,17 +46,15 @@ function addDays(date: Date, delta: number): Date {
 }
 
 function BodyContent() {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const today = React.useMemo(() => new Date(), []);
-  const todayKey = React.useMemo(() => toDateKey(today), [today]);
 
   const [selectedDateKey, setSelectedDateKey] = React.useState<string>(() => {
     return searchParams.get("date") ?? toDateKey(new Date());
   });
   const [tasks, setTasks] = React.useState<BodyTask[]>([]);
+  const [completedIds, setCompletedIds] = React.useState<Set<number>>(new Set());
   const [bodyStartDateKey, setBodyStartDateKey] = React.useState<string>("");
   const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(today));
   const [monthScoreMap, setMonthScoreMap] = React.useState<Record<string, number>>({});
@@ -63,19 +63,31 @@ function BodyContent() {
   const [isAddingTask, setIsAddingTask] = React.useState<boolean>(false);
   const [calendarTick, setCalendarTick] = React.useState(0);
 
-  React.useEffect(() => {
-    const queryDate = searchParams.get("date");
-    if (queryDate && queryDate !== selectedDateKey) {
-      setSelectedDateKey(queryDate);
-    }
-  }, [searchParams, selectedDateKey]);
+  const didInitSelectedDate = React.useRef(false);
 
   React.useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("date", selectedDateKey);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    localStorage.setItem("bodySelectedDate", selectedDateKey);
-  }, [selectedDateKey, pathname, router, searchParams]);
+    if (didInitSelectedDate.current) return;
+    const queryDate = searchParams.get("date");
+    if (queryDate) {
+      setSelectedDateKey(queryDate);
+      didInitSelectedDate.current = true;
+      return;
+    }
+    const saved = localStorage.getItem("body.selectedDateISO");
+    if (saved) {
+      setSelectedDateKey(saved);
+    }
+    didInitSelectedDate.current = true;
+  }, [searchParams]);
+
+  function handleDateChange(nextDateKey: string) {
+    setSelectedDateKey(nextDateKey);
+    localStorage.setItem("body.selectedDateISO", nextDateKey);
+    const params = new URLSearchParams(window.location.search);
+    params.set("date", nextDateKey);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }
 
   React.useEffect(() => {
     if (!selectedDateKey) return;
@@ -94,10 +106,14 @@ function BodyContent() {
     async function hydrate() {
       const meta = await ensureBodyMeta(selectedDateKey);
       setBodyStartDateKey(meta.startDate);
-      const storedTasks = await listBodyTasksByDate(selectedDateKey);
+      const [taskDefs, log] = await Promise.all([
+        listBodyTasks(),
+        getOrCreateBodyLog(selectedDateKey),
+      ]);
 
       if (!isMounted) return;
-      setTasks(storedTasks);
+      setTasks(taskDefs);
+      setCompletedIds(new Set(log.completedTaskIds));
     }
 
     hydrate();
@@ -123,18 +139,19 @@ function BodyContent() {
 
   async function handleToggleTask(task: BodyTask) {
     if (!task.id) return;
-    const nextCompleted = !task.completed;
-    await toggleBodyTask(task.id, nextCompleted);
-    const storedTasks = await listBodyTasksByDate(selectedDateKey);
-    setTasks(storedTasks);
+    const log = await toggleBodyTaskForDate(selectedDateKey, task.id);
+    setCompletedIds(new Set(log.completedTaskIds));
     setCalendarTick((prev) => prev + 1);
+    if (!bodyStartDateKey || selectedDateKey < bodyStartDateKey) {
+      setBodyStartDateKey(selectedDateKey);
+    }
   }
 
   async function handleAddTask() {
     const title = newTaskTitle.trim();
     if (!title) return;
-    await addBodyTask(selectedDateKey, title, newTaskPriority);
-    const storedTasks = await listBodyTasksByDate(selectedDateKey);
+    await addBodyTask(title, newTaskPriority);
+    const storedTasks = await listBodyTasks();
     setTasks(storedTasks);
     setCalendarTick((prev) => prev + 1);
     setNewTaskTitle("");
@@ -142,17 +159,27 @@ function BodyContent() {
     setIsAddingTask(false);
   }
 
-  const mainTasks = tasks.filter((task) => task.priority === "main");
-  const secondaryTasks = tasks.filter((task) => task.priority === "secondary");
+  const tasksWithCompletion = React.useMemo(
+    () =>
+      tasks.map((task) => ({
+        ...task,
+        completed: completedIds.has(task.id ?? -1),
+      })),
+    [completedIds, tasks],
+  );
+
+  const mainTasks = tasksWithCompletion.filter((task) => task.priority === "main");
+  const secondaryTasks = tasksWithCompletion.filter((task) => task.priority === "secondary");
   const hasTasks = tasks.length > 0;
-  const score = computeBodyDayScore(tasks);
+  const score = computeBodyDayScore(tasksWithCompletion as Array<BodyTask & { completed: boolean }>);
   const monthStartKey = React.useMemo(() => toDateKey(startOfMonth(visibleMonth)), [visibleMonth]);
   const monthEndKey = React.useMemo(() => toDateKey(endOfMonth(visibleMonth)), [visibleMonth]);
+  const referenceKey = selectedDateKey;
 
   const consistency = React.useMemo(() => {
     const effectiveStartKey =
       bodyStartDateKey && bodyStartDateKey > monthStartKey ? bodyStartDateKey : monthStartKey;
-    const effectiveEndKey = todayKey < monthEndKey ? todayKey : monthEndKey;
+    const effectiveEndKey = referenceKey < monthEndKey ? referenceKey : monthEndKey;
 
     if (!effectiveStartKey || effectiveStartKey > effectiveEndKey) {
       return { consistencyPct: 0, consistentDays: 0, daysElapsed: 0, currentStreak: 0, bestStreak: 0 };
@@ -195,16 +222,8 @@ function BodyContent() {
     const consistencyPct = daysElapsed === 0 ? 0 : Math.round((consistentDays / daysElapsed) * 100);
 
     return { consistencyPct, consistentDays, daysElapsed, currentStreak, bestStreak };
-  }, [bodyStartDateKey, monthEndKey, monthScoreMap, monthStartKey, todayKey]);
+  }, [bodyStartDateKey, monthEndKey, monthScoreMap, monthStartKey, referenceKey]);
 
-  React.useEffect(() => {
-    const queryDate = searchParams.get("date");
-    if (queryDate) return;
-    const saved = localStorage.getItem("bodySelectedDate");
-    if (saved) {
-      setSelectedDateKey(saved);
-    }
-  }, [searchParams]);
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
@@ -212,6 +231,15 @@ function BodyContent() {
         <header>
           <h1 className="tp-title text-3xl font-bold md:text-4xl">BODY ENGINE</h1>
           <p className="tp-subtitle mt-3 text-sm text-white/70">Forever tracker • {selectedDateKey}</p>
+          <div className="mt-3 flex items-center gap-3 text-sm text-white/65">
+            <span className="body-consistency-label">Selected</span>
+            <input
+              type="date"
+              value={selectedDateKey}
+              onChange={(event) => handleDateChange(event.target.value)}
+              className="body-select h-8 px-2"
+            />
+          </div>
         </header>
 
         <section className="tp-panel p-4">
@@ -227,31 +255,43 @@ function BodyContent() {
         </section>
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <BodyCalendar
           selectedDateKey={selectedDateKey}
-          onSelectDate={setSelectedDateKey}
+          onSelectDate={handleDateChange}
           refreshKey={calendarTick}
           startDateKey={bodyStartDateKey}
           visibleMonth={visibleMonth}
           onVisibleMonthChange={setVisibleMonth}
           scoreMap={monthScoreMap}
+          referenceDateKey={selectedDateKey}
         />
 
         <section className="tp-panel p-5 sm:p-6">
           <p className="tp-kicker">Consistency</p>
           <p className="tp-score-value text-3xl mt-2">{consistency.consistencyPct}%</p>
-          <p className="mt-2 text-sm text-white/65">
-            Consistent Days: {consistency.consistentDays} / {consistency.daysElapsed}
-          </p>
-          <p className="mt-2 text-xs text-white/55">Current Streak: {consistency.currentStreak} days</p>
-          <p className="text-xs text-white/55">Best Streak: {consistency.bestStreak} days</p>
+          <div className="body-consistency-stack">
+            <div className="body-consistency-row">
+              <p className="body-consistency-label">Consistent Days</p>
+              <p className="body-consistency-value">
+                {consistency.consistentDays} / {consistency.daysElapsed}
+              </p>
+            </div>
+            <div className="body-consistency-row">
+              <p className="body-consistency-label">Current Streak</p>
+              <p className="body-consistency-value">{consistency.currentStreak} days</p>
+            </div>
+            <div className="body-consistency-row">
+              <p className="body-consistency-label">Best Streak</p>
+              <p className="body-consistency-value">{consistency.bestStreak} days</p>
+            </div>
+          </div>
           <div className="mt-4">
             <BodyMonthlyHeatBars
               visibleMonth={visibleMonth}
               scoreMap={monthScoreMap}
               startDateKey={bodyStartDateKey}
-              todayKey={todayKey}
+              todayKey={selectedDateKey}
             />
           </div>
         </section>
@@ -301,8 +341,9 @@ function BodyContent() {
                             onClick={async () => {
                               if (!task.id) return;
                               await updateBodyTaskPriority(task.id, "main");
-                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              const stored = await listBodyTasks();
                               setTasks(stored);
+                              setCalendarTick((prev) => prev + 1);
                             }}
                           >
                             Move to Main
@@ -311,9 +352,27 @@ function BodyContent() {
                             type="button"
                             onClick={async () => {
                               if (!task.id) return;
-                              await deleteBodyTask(task.id);
-                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              const nextTitle = window.prompt("Rename task", task.title);
+                              if (!nextTitle) return;
+                              await renameBodyTask(task.id, nextTitle.trim());
+                              const stored = await listBodyTasks();
                               setTasks(stored);
+                            }}
+                          >
+                            Rename
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await deleteBodyTask(task.id);
+                              const stored = await listBodyTasks();
+                              setTasks(stored);
+                              setCompletedIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(task.id);
+                                return next;
+                              });
                               setCalendarTick((prev) => prev + 1);
                             }}
                           >
@@ -380,8 +439,9 @@ function BodyContent() {
                             onClick={async () => {
                               if (!task.id) return;
                               await updateBodyTaskPriority(task.id, "secondary");
-                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              const stored = await listBodyTasks();
                               setTasks(stored);
+                              setCalendarTick((prev) => prev + 1);
                             }}
                           >
                             Move to Secondary
@@ -390,9 +450,27 @@ function BodyContent() {
                             type="button"
                             onClick={async () => {
                               if (!task.id) return;
-                              await deleteBodyTask(task.id);
-                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              const nextTitle = window.prompt("Rename task", task.title);
+                              if (!nextTitle) return;
+                              await renameBodyTask(task.id, nextTitle.trim());
+                              const stored = await listBodyTasks();
                               setTasks(stored);
+                            }}
+                          >
+                            Rename
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await deleteBodyTask(task.id);
+                              const stored = await listBodyTasks();
+                              setTasks(stored);
+                              setCompletedIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(task.id);
+                                return next;
+                              });
                               setCalendarTick((prev) => prev + 1);
                             }}
                           >

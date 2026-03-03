@@ -9,6 +9,7 @@ type BodyCalendarProps = {
   onSelectDate: (dateKey: string) => void;
   refreshKey?: number;
   startDateKey?: string;
+  referenceDateKey?: string;
   visibleMonth?: Date;
   onVisibleMonthChange?: (next: Date) => void;
   scoreMap?: Record<string, number>;
@@ -44,6 +45,7 @@ export function BodyCalendar({
   onSelectDate,
   refreshKey,
   startDateKey,
+  referenceDateKey,
   visibleMonth,
   onVisibleMonthChange,
   scoreMap: scoreMapProp,
@@ -60,6 +62,7 @@ export function BodyCalendar({
   const monthStartKey = toDateKey(startOfMonth(month));
   const monthEndKey = toDateKey(endOfMonth(month));
   const todayKey = toDateKey(today);
+  const referenceKey = referenceDateKey ?? todayKey;
 
   React.useEffect(() => {
     if (scoreMapProp) return;
@@ -102,7 +105,7 @@ export function BodyCalendar({
     return Array.from({ length: totalDays }, (_, i) => {
       const date = new Date(month.getFullYear(), month.getMonth(), i + 1);
       const dateKey = toDateKey(date);
-      const isFuture = dateKey > todayKey;
+      const isFuture = dateKey > referenceKey;
       const isSelected = dateKey === selectedDateKey;
       const isBeforeStart = startDateKey ? dateKey < startDateKey : false;
       const scorePct = scoreMap[dateKey] ?? 0;
@@ -112,7 +115,7 @@ export function BodyCalendar({
   }, [scoreMap, selectedDateKey, totalDays, month, todayKey, startDateKey]);
 
   return (
-    <section className="tp-panel p-4">
+    <section className="tp-panel p-3">
       <div className="tp-panel-head">
         <div>
           <p className="tp-kicker">Calendar</p>
@@ -128,7 +131,7 @@ export function BodyCalendar({
         </div>
       </div>
 
-      <div className="body-calendar mt-4">
+      <div className="body-calendar mt-3">
         {days.map((day) => {
           const classNames = [
             "body-day",
@@ -146,7 +149,6 @@ export function BodyCalendar({
             <button
               key={day.dateKey}
               type="button"
-              disabled={day.isFuture || day.isBeforeStart}
               className={classNames}
               style={{ ["--heat" as never]: day.visual.intensity }}
               onClick={() => onSelectDate(day.dateKey)}

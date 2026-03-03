@@ -3,8 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { listBodyTasksByDate } from "../../lib/body";
-import { computeBodyDayScore } from "../../lib/bodyScore";
+import { computeBodyDayScoreFromLog, getBodyLog, listBodyTasks } from "../../lib/body";
 import { playClick } from "../../lib/sound";
 
 type EngineCardModel = {
@@ -37,8 +36,8 @@ export default function Dashboard() {
     let mounted = true;
     async function loadBodyScore() {
       const todayKey = toDateKey(new Date());
-      const tasks = await listBodyTasksByDate(todayKey);
-      const score = computeBodyDayScore(tasks);
+      const [tasks, log] = await Promise.all([listBodyTasks(), getBodyLog(todayKey)]);
+      const score = log ? computeBodyDayScoreFromLog(tasks, log.completedTaskIds) : { percent: 0 };
       if (mounted) setBodyScorePct(score.percent);
     }
     loadBodyScore();

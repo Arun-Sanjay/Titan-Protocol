@@ -8,10 +8,8 @@ export type BodyMeta = {
 
 export type BodyTask = {
   id?: number;
-  dateKey: string;
   title: string;
   priority: "main" | "secondary";
-  completed: boolean;
   createdAt: number;
 };
 
@@ -42,6 +40,86 @@ class TitanBodyDB extends Dexie {
       })
       .upgrade(async (tx) => {
         await tx.table("body_tasks").clear();
+      });
+    this.version(3)
+      .stores({
+        body_meta: "id",
+        body_tasks: "++id, createdAt, priority",
+        body_logs: "++id, dateKey",
+      })
+      .upgrade(async (tx) => {
+        const oldTasks = await tx.table("body_tasks").toArray();
+        const oldLogs = await tx.table("body_logs").toArray();
+
+        const defsMap = new Map<string, { title: string; priority: "main" | "secondary"; createdAt: number }>();
+        let earliestDate: string | null = null;
+
+        for (const task of oldTasks as Array<
+          BodyTask & { dateKey?: string; completed?: boolean; priority?: "main" | "secondary" }
+        >) {
+          const priority = task.priority ?? "main";
+          const key = `${task.title}::${priority}`;
+          const existing = defsMap.get(key);
+          const createdAt = task.createdAt ?? Date.now();
+          if (!existing || createdAt < existing.createdAt) {
+            defsMap.set(key, { title: task.title, priority, createdAt });
+          }
+          if (task.dateKey) {
+            if (!earliestDate || task.dateKey < earliestDate) earliestDate = task.dateKey;
+          }
+        }
+
+        const defs = Array.from(defsMap.values());
+        await tx.table("body_tasks").clear();
+        const ids = defs.length
+          ? await tx.table("body_tasks").bulkAdd(defs, { allKeys: true })
+          : [];
+
+        const keyToId = new Map<string, number>();
+        defs.forEach((def, index) => {
+          const id = ids[index] as number;
+          keyToId.set(`${def.title}::${def.priority}`, id);
+        });
+
+        const logMap = new Map<string, Set<number>>();
+        for (const task of oldTasks as Array<
+          BodyTask & { dateKey?: string; completed?: boolean; priority?: "main" | "secondary" }
+        >) {
+          if (!task.dateKey || !task.completed) continue;
+          const priority = task.priority ?? "main";
+          const key = `${task.title}::${priority}`;
+          const id = keyToId.get(key);
+          if (!id) continue;
+          const set = logMap.get(task.dateKey) ?? new Set<number>();
+          set.add(id);
+          logMap.set(task.dateKey, set);
+        }
+
+        for (const log of oldLogs as Array<BodyLog>) {
+          if (!log.dateKey || !log.completedTaskIds?.length) continue;
+          const set = logMap.get(log.dateKey) ?? new Set<number>();
+          log.completedTaskIds.forEach((id) => set.add(id));
+          logMap.set(log.dateKey, set);
+        }
+
+        const logs = Array.from(logMap.entries()).map(([dateKey, set]) => ({
+          dateKey,
+          completedTaskIds: Array.from(set),
+          createdAt: Date.now(),
+        }));
+
+        await tx.table("body_logs").clear();
+        if (logs.length) {
+          await tx.table("body_logs").bulkAdd(logs);
+        }
+
+        if (earliestDate) {
+          const meta = await tx.table("body_meta").get("body");
+          if (meta) {
+            const nextStartDate = meta.startDate && meta.startDate < earliestDate ? meta.startDate : earliestDate;
+            await tx.table("body_meta").update("body", { startDate: nextStartDate });
+          }
+        }
       });
   }
 }

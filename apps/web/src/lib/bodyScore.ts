@@ -10,7 +10,7 @@ export type BodyDayScore = {
   percent: number;
 };
 
-export function computeBodyDayScore(tasks: BodyTask[]): BodyDayScore {
+export function computeBodyDayScore(tasks: Array<BodyTask & { completed: boolean }>): BodyDayScore {
   const mainTotal = tasks.filter((task) => task.priority === "main").length;
   const mainDone = tasks.filter((task) => task.priority === "main" && task.completed).length;
   const secondaryTotal = tasks.filter((task) => task.priority === "secondary").length;

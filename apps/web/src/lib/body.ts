@@ -14,65 +14,86 @@ export async function getBodyStartDate(): Promise<string | null> {
   return meta?.startDate ?? null;
 }
 
-export async function listBodyTasksByDate(dateKey: string): Promise<BodyTask[]> {
-  return db.body_tasks.where("dateKey").equals(dateKey).toArray();
+export async function listBodyTasks(): Promise<BodyTask[]> {
+  return db.body_tasks.toArray();
 }
 
 export async function addBodyTask(
-  dateKey: string,
   title: string,
   priority: "main" | "secondary",
 ): Promise<number> {
   return db.body_tasks.add({
-    dateKey,
     title,
     priority,
-    completed: false,
     createdAt: Date.now(),
   });
-}
-
-export async function toggleBodyTask(taskId: number, completed: boolean): Promise<void> {
-  await db.body_tasks.update(taskId, { completed });
 }
 
 export async function updateBodyTaskPriority(taskId: number, priority: "main" | "secondary"): Promise<void> {
   await db.body_tasks.update(taskId, { priority });
 }
 
+export async function renameBodyTask(taskId: number, title: string): Promise<void> {
+  await db.body_tasks.update(taskId, { title });
+}
+
 export async function deleteBodyTask(taskId: number): Promise<void> {
   await db.body_tasks.delete(taskId);
+  const logs = await db.body_logs.toArray();
+  await Promise.all(
+    logs.map(async (log) => {
+      if (!log.completedTaskIds.includes(taskId) || !log.id) return;
+      const nextIds = log.completedTaskIds.filter((id) => id !== taskId);
+      await db.body_logs.update(log.id, { completedTaskIds: nextIds });
+    }),
+  );
 }
 
 export async function getBodyLog(dateKey: string): Promise<BodyLog | undefined> {
   return db.body_logs.where("dateKey").equals(dateKey).first();
 }
 
-export async function upsertBodyLog(dateKey: string, completedTaskIds: number[]): Promise<void> {
+export async function getOrCreateBodyLog(dateKey: string): Promise<BodyLog> {
   const existing = await getBodyLog(dateKey);
-  if (existing?.id) {
-    await db.body_logs.update(existing.id, { completedTaskIds });
-    return;
+  if (existing) return existing;
+  const id = await db.body_logs.add({ dateKey, completedTaskIds: [], createdAt: Date.now() });
+  return { id, dateKey, completedTaskIds: [], createdAt: Date.now() };
+}
+
+export async function toggleBodyTaskForDate(dateKey: string, taskId: number): Promise<BodyLog> {
+  const log = await getOrCreateBodyLog(dateKey);
+  const exists = log.completedTaskIds.includes(taskId);
+  const nextIds = exists ? log.completedTaskIds.filter((id) => id !== taskId) : [...log.completedTaskIds, taskId];
+  if (log.id) {
+    await db.body_logs.update(log.id, { completedTaskIds: nextIds });
   }
-  await db.body_logs.add({ dateKey, completedTaskIds, createdAt: Date.now() });
+  const meta = await ensureBodyMeta(dateKey);
+  if (dateKey < meta.startDate) {
+    await db.body_meta.update("body", { startDate: dateKey });
+  }
+  return { ...log, completedTaskIds: nextIds };
+}
+
+export function computeBodyDayScoreFromLog(tasks: BodyTask[], completedTaskIds: number[]) {
+  const completedSet = new Set(completedTaskIds);
+  const tasksWithCompletion = tasks.map((task) => ({
+    ...task,
+    completed: completedSet.has(task.id ?? -1),
+  }));
+  return computeBodyDayScore(tasksWithCompletion as Array<BodyTask & { completed: boolean }>);
 }
 
 export async function getBodyScoreMapForRange(
   startKey: string,
   endKey: string,
 ): Promise<Record<string, number>> {
-  const tasks = await db.body_tasks
-    .where("dateKey")
-    .between(startKey, endKey, true, true)
-    .toArray();
-  const bucket: Record<string, BodyTask[]> = {};
-  for (const task of tasks) {
-    if (!bucket[task.dateKey]) bucket[task.dateKey] = [];
-    bucket[task.dateKey].push(task);
-  }
+  const [tasks, logs] = await Promise.all([
+    db.body_tasks.toArray(),
+    db.body_logs.where("dateKey").between(startKey, endKey, true, true).toArray(),
+  ]);
   const map: Record<string, number> = {};
-  for (const [dateKey, dateTasks] of Object.entries(bucket)) {
-    map[dateKey] = computeBodyDayScore(dateTasks).percent;
+  for (const log of logs) {
+    map[log.dateKey] = computeBodyDayScoreFromLog(tasks, log.completedTaskIds).percent;
   }
   return map;
 }
