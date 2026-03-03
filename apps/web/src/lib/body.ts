@@ -1,4 +1,5 @@
 import { db, type BodyLog, type BodyMeta, type BodyTask } from "./db";
+import { computeBodyDayScore } from "./bodyScore";
 
 export async function ensureBodyMeta(todayKey: string): Promise<BodyMeta> {
   const existing = await db.body_meta.get("body");
@@ -6,6 +7,11 @@ export async function ensureBodyMeta(todayKey: string): Promise<BodyMeta> {
   const meta: BodyMeta = { id: "body", startDate: todayKey, createdAt: Date.now() };
   await db.body_meta.put(meta);
   return meta;
+}
+
+export async function getBodyStartDate(): Promise<string | null> {
+  const meta = await db.body_meta.get("body");
+  return meta?.startDate ?? null;
 }
 
 export async function listBodyTasksByDate(dateKey: string): Promise<BodyTask[]> {
@@ -51,21 +57,22 @@ export async function upsertBodyLog(dateKey: string, completedTaskIds: number[])
   await db.body_logs.add({ dateKey, completedTaskIds, createdAt: Date.now() });
 }
 
-export async function getBodyCompletionMapForRange(
+export async function getBodyScoreMapForRange(
   startKey: string,
   endKey: string,
-): Promise<Record<string, boolean>> {
+): Promise<Record<string, number>> {
   const tasks = await db.body_tasks
     .where("dateKey")
     .between(startKey, endKey, true, true)
     .toArray();
-  const map: Record<string, boolean> = {};
+  const bucket: Record<string, BodyTask[]> = {};
   for (const task of tasks) {
-    if (task.completed) {
-      map[task.dateKey] = true;
-    } else if (!(task.dateKey in map)) {
-      map[task.dateKey] = false;
-    }
+    if (!bucket[task.dateKey]) bucket[task.dateKey] = [];
+    bucket[task.dateKey].push(task);
+  }
+  const map: Record<string, number> = {};
+  for (const [dateKey, dateTasks] of Object.entries(bucket)) {
+    map[dateKey] = computeBodyDayScore(dateTasks).percent;
   }
   return map;
 }

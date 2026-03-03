@@ -7,6 +7,7 @@ import {
   addBodyTask,
   deleteBodyTask,
   ensureBodyMeta,
+  getBodyScoreMapForRange,
   listBodyTasksByDate,
   toggleBodyTask,
   updateBodyTaskPriority,
@@ -14,6 +15,7 @@ import {
 import type { BodyTask } from "../../../../lib/db";
 import { computeBodyDayScore } from "../../../../lib/bodyScore";
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
+import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -22,15 +24,40 @@ function toDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function addDays(date: Date, delta: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + delta);
+  return next;
+}
+
 function BodyContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const today = React.useMemo(() => new Date(), []);
+  const todayKey = React.useMemo(() => toDateKey(today), [today]);
+
   const [selectedDateKey, setSelectedDateKey] = React.useState<string>(() => {
     return searchParams.get("date") ?? toDateKey(new Date());
   });
   const [tasks, setTasks] = React.useState<BodyTask[]>([]);
+  const [bodyStartDateKey, setBodyStartDateKey] = React.useState<string>("");
+  const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(today));
+  const [monthScoreMap, setMonthScoreMap] = React.useState<Record<string, number>>({});
   const [newTaskTitle, setNewTaskTitle] = React.useState<string>("");
   const [newTaskPriority, setNewTaskPriority] = React.useState<"main" | "secondary">("main");
   const [isAddingTask, setIsAddingTask] = React.useState<boolean>(false);
@@ -51,10 +78,22 @@ function BodyContent() {
   }, [selectedDateKey, pathname, router, searchParams]);
 
   React.useEffect(() => {
+    if (!selectedDateKey) return;
+    const selectedDate = parseDateKey(selectedDateKey);
+    if (
+      selectedDate.getFullYear() !== visibleMonth.getFullYear() ||
+      selectedDate.getMonth() !== visibleMonth.getMonth()
+    ) {
+      setVisibleMonth(startOfMonth(selectedDate));
+    }
+  }, [selectedDateKey, visibleMonth]);
+
+  React.useEffect(() => {
     let isMounted = true;
 
     async function hydrate() {
-      await ensureBodyMeta(selectedDateKey);
+      const meta = await ensureBodyMeta(selectedDateKey);
+      setBodyStartDateKey(meta.startDate);
       const storedTasks = await listBodyTasksByDate(selectedDateKey);
 
       if (!isMounted) return;
@@ -67,6 +106,20 @@ function BodyContent() {
       isMounted = false;
     };
   }, [selectedDateKey]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadMonthScores() {
+      const startKey = toDateKey(startOfMonth(visibleMonth));
+      const endKey = toDateKey(endOfMonth(visibleMonth));
+      const map = await getBodyScoreMapForRange(startKey, endKey);
+      if (mounted) setMonthScoreMap(map);
+    }
+    loadMonthScores();
+    return () => {
+      mounted = false;
+    };
+  }, [visibleMonth, calendarTick]);
 
   async function handleToggleTask(task: BodyTask) {
     if (!task.id) return;
@@ -93,6 +146,56 @@ function BodyContent() {
   const secondaryTasks = tasks.filter((task) => task.priority === "secondary");
   const hasTasks = tasks.length > 0;
   const score = computeBodyDayScore(tasks);
+  const monthStartKey = React.useMemo(() => toDateKey(startOfMonth(visibleMonth)), [visibleMonth]);
+  const monthEndKey = React.useMemo(() => toDateKey(endOfMonth(visibleMonth)), [visibleMonth]);
+
+  const consistency = React.useMemo(() => {
+    const effectiveStartKey =
+      bodyStartDateKey && bodyStartDateKey > monthStartKey ? bodyStartDateKey : monthStartKey;
+    const effectiveEndKey = todayKey < monthEndKey ? todayKey : monthEndKey;
+
+    if (!effectiveStartKey || effectiveStartKey > effectiveEndKey) {
+      return { consistencyPct: 0, consistentDays: 0, daysElapsed: 0, currentStreak: 0, bestStreak: 0 };
+    }
+
+    let daysElapsed = 0;
+    let consistentDays = 0;
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let runningStreak = 0;
+
+    const startDate = parseDateKey(effectiveStartKey);
+    const endDate = parseDateKey(effectiveEndKey);
+    const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
+
+    for (let i = 0; i < totalDays; i += 1) {
+      const dateKey = toDateKey(addDays(startDate, i));
+      const scorePct = monthScoreMap[dateKey] ?? 0;
+      daysElapsed += 1;
+      if (scorePct >= 60) {
+        consistentDays += 1;
+        runningStreak += 1;
+        if (runningStreak > bestStreak) bestStreak = runningStreak;
+      } else {
+        runningStreak = 0;
+      }
+    }
+
+    const streakStartDate = parseDateKey(effectiveEndKey);
+    for (let i = 0; i < totalDays; i += 1) {
+      const dateKey = toDateKey(addDays(streakStartDate, -i));
+      const scorePct = monthScoreMap[dateKey] ?? 0;
+      if (scorePct >= 60) {
+        currentStreak += 1;
+      } else {
+        break;
+      }
+    }
+
+    const consistencyPct = daysElapsed === 0 ? 0 : Math.round((consistentDays / daysElapsed) * 100);
+
+    return { consistencyPct, consistentDays, daysElapsed, currentStreak, bestStreak };
+  }, [bodyStartDateKey, monthEndKey, monthScoreMap, monthStartKey, todayKey]);
 
   React.useEffect(() => {
     const queryDate = searchParams.get("date");
@@ -105,27 +208,16 @@ function BodyContent() {
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
-      <header className="mb-5">
-        <h1 className="tp-title text-3xl font-bold md:text-4xl">BODY ENGINE</h1>
-        <p className="tp-subtitle mt-3 text-sm text-white/70">Forever tracker • {selectedDateKey}</p>
-      </header>
+      <div className="grid grid-cols-[1fr_auto] items-start gap-6">
+        <header>
+          <h1 className="tp-title text-3xl font-bold md:text-4xl">BODY ENGINE</h1>
+          <p className="tp-subtitle mt-3 text-sm text-white/70">Forever tracker • {selectedDateKey}</p>
+        </header>
 
-      <BodyCalendar
-        selectedDateKey={selectedDateKey}
-        onSelectDate={setSelectedDateKey}
-        refreshKey={calendarTick}
-      />
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <section className="tp-panel p-5 sm:p-6">
-          <div className="tp-panel-head">
-            <div>
-              <p className="tp-kicker">Day Score</p>
-              <p className="tp-score-value text-3xl">{score.percent}%</p>
-            </div>
-            <p className="tp-muted">{selectedDateKey}</p>
-          </div>
-          <p className="mt-3 text-sm text-white/65">
+        <section className="tp-panel p-4">
+          <p className="tp-kicker">Day Score</p>
+          <p className="tp-score-value text-3xl">{score.percent}%</p>
+          <p className="mt-2 text-xs text-white/65">
             Main {score.mainDone}/{score.mainTotal} • Secondary {score.secondaryDone}/{score.secondaryTotal} • Points{" "}
             {score.pointsDone}/{score.pointsTotal}
           </p>
@@ -133,16 +225,48 @@ function BodyContent() {
             <span style={{ width: `${score.percent}%` }} />
           </div>
         </section>
+      </div>
+
+      <div className="mt-5 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <BodyCalendar
+          selectedDateKey={selectedDateKey}
+          onSelectDate={setSelectedDateKey}
+          refreshKey={calendarTick}
+          startDateKey={bodyStartDateKey}
+          visibleMonth={visibleMonth}
+          onVisibleMonthChange={setVisibleMonth}
+          scoreMap={monthScoreMap}
+        />
 
         <section className="tp-panel p-5 sm:p-6">
+          <p className="tp-kicker">Consistency</p>
+          <p className="tp-score-value text-3xl mt-2">{consistency.consistencyPct}%</p>
+          <p className="mt-2 text-sm text-white/65">
+            Consistent Days: {consistency.consistentDays} / {consistency.daysElapsed}
+          </p>
+          <p className="mt-2 text-xs text-white/55">Current Streak: {consistency.currentStreak} days</p>
+          <p className="text-xs text-white/55">Best Streak: {consistency.bestStreak} days</p>
+          <div className="mt-4">
+            <BodyMonthlyHeatBars
+              visibleMonth={visibleMonth}
+              scoreMap={monthScoreMap}
+              startDateKey={bodyStartDateKey}
+              todayKey={todayKey}
+            />
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <section className="tp-panel p-5 sm:p-6">
           <div className="tp-panel-head">
-            <p className="tp-kicker">Tasks</p>
+            <p className="tp-kicker">Secondary Tasks</p>
             <p className="tp-muted">{selectedDateKey}</p>
           </div>
 
-          {!hasTasks ? (
-            <div className="mt-5 rounded-md border border-white/10 bg-black/40 px-4 py-6 text-sm text-white/60">
-              <p>No tasks for this date.</p>
+          {!hasTasks && secondaryTasks.length === 0 ? (
+            <div className="body-empty mt-4">
+              <p>No secondary tasks for this date.</p>
               <button
                 type="button"
                 onClick={() => setIsAddingTask(true)}
@@ -152,183 +276,203 @@ function BodyContent() {
               </button>
             </div>
           ) : (
-            <div className="mt-4 space-y-5">
-              <div>
-                <p className="tp-kicker">Main Tasks</p>
-                <div className="mt-3 space-y-2">
-                  {mainTasks.length === 0 ? (
-                    <div className="body-empty">No main tasks.</div>
-                  ) : (
-                    mainTasks.map((task) => (
-                      <div key={task.id} className="body-task-row">
-                        <label className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={() => handleToggleTask(task)}
-                            className="h-4 w-4 accent-white"
-                          />
-                          <span>{task.title}</span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="body-badge">MAIN</span>
-                          <details className="body-menu">
-                            <summary>•••</summary>
-                            <div className="body-menu-panel">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!task.id) return;
-                                  await updateBodyTaskPriority(task.id, "secondary");
-                                  const stored = await listBodyTasksByDate(selectedDateKey);
-                                  setTasks(stored);
-                                }}
-                              >
-                                Move to Secondary
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!task.id) return;
-                                  await deleteBodyTask(task.id);
-                                  const stored = await listBodyTasksByDate(selectedDateKey);
-                                  setTasks(stored);
-                                  setCalendarTick((prev) => prev + 1);
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </details>
+            <div className="mt-4 space-y-2">
+              {secondaryTasks.length === 0 ? (
+                <div className="body-empty">No secondary tasks.</div>
+              ) : (
+                secondaryTasks.map((task) => (
+                  <div key={task.id} className="body-task-row">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => handleToggleTask(task)}
+                        className="h-4 w-4 accent-white"
+                      />
+                      <span>{task.title}</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="body-badge">SECONDARY</span>
+                      <details className="body-menu">
+                        <summary>•••</summary>
+                        <div className="body-menu-panel">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await updateBodyTaskPriority(task.id, "main");
+                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              setTasks(stored);
+                            }}
+                          >
+                            Move to Main
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await deleteBodyTask(task.id);
+                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              setTasks(stored);
+                              setCalendarTick((prev) => prev + 1);
+                            }}
+                          >
+                            Delete
+                          </button>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                      </details>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
-              <div>
-                <p className="tp-kicker">Secondary Tasks</p>
-                <div className="mt-3 space-y-2">
-                  {secondaryTasks.length === 0 ? (
-                    <div className="body-empty">No secondary tasks.</div>
-                  ) : (
-                    secondaryTasks.map((task) => (
-                      <div key={task.id} className="body-task-row">
-                        <label className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={() => handleToggleTask(task)}
-                            className="h-4 w-4 accent-white"
-                          />
-                          <span>{task.title}</span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="body-badge">SECONDARY</span>
-                          <details className="body-menu">
-                            <summary>•••</summary>
-                            <div className="body-menu-panel">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!task.id) return;
-                                  await updateBodyTaskPriority(task.id, "main");
-                                  const stored = await listBodyTasksByDate(selectedDateKey);
-                                  setTasks(stored);
-                                }}
-                              >
-                                Move to Main
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!task.id) return;
-                                  await deleteBodyTask(task.id);
-                                  const stored = await listBodyTasksByDate(selectedDateKey);
-                                  setTasks(stored);
-                                  setCalendarTick((prev) => prev + 1);
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </details>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+          <button
+            type="button"
+            onClick={() => setIsAddingTask(true)}
+            className="tp-button mt-4 inline-flex w-auto px-4"
+          >
+            Add Task
+          </button>
+        </section>
 
+        <section className="tp-panel p-5 sm:p-6">
+          <div className="tp-panel-head">
+            <p className="tp-kicker">Main Tasks</p>
+            <p className="tp-muted">{selectedDateKey}</p>
+          </div>
+
+          {!hasTasks && mainTasks.length === 0 ? (
+            <div className="body-empty mt-4">
+              <p>No main tasks for this date.</p>
               <button
                 type="button"
                 onClick={() => setIsAddingTask(true)}
-                className="tp-button mt-3 inline-flex w-auto px-4"
+                className="tp-button mt-4 inline-flex w-auto px-4"
               >
                 Add Task
               </button>
             </div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {mainTasks.length === 0 ? (
+                <div className="body-empty">No main tasks.</div>
+              ) : (
+                mainTasks.map((task) => (
+                  <div key={task.id} className="body-task-row">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => handleToggleTask(task)}
+                        className="h-4 w-4 accent-white"
+                      />
+                      <span>{task.title}</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="body-badge">MAIN</span>
+                      <details className="body-menu">
+                        <summary>•••</summary>
+                        <div className="body-menu-panel">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await updateBodyTaskPriority(task.id, "secondary");
+                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              setTasks(stored);
+                            }}
+                          >
+                            Move to Secondary
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!task.id) return;
+                              await deleteBodyTask(task.id);
+                              const stored = await listBodyTasksByDate(selectedDateKey);
+                              setTasks(stored);
+                              setCalendarTick((prev) => prev + 1);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           )}
 
-          {isAddingTask ? (
-            <div className="body-modal">
-              <div className="body-modal-panel">
-                <div className="tp-panel-head">
-                  <p className="tp-kicker">New Task</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingTask(false);
-                      setNewTaskTitle("");
-                    }}
-                    className="tp-button tp-button-inline"
-                  >
-                    Close
-                  </button>
-                </div>
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="body-label">Title</label>
-                    <input
-                      value={newTaskTitle}
-                      onChange={(event) => setNewTaskTitle(event.target.value)}
-                      className="body-input"
-                      placeholder="Task title"
-                    />
-                  </div>
-                  <div>
-                    <label className="body-label">Priority</label>
-                    <select
-                      value={newTaskPriority}
-                      onChange={(event) => setNewTaskPriority(event.target.value as "main" | "secondary")}
-                      className="body-select"
-                    >
-                      <option value="main">Main (2 pts)</option>
-                      <option value="secondary">Secondary (1 pt)</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-5 flex gap-2">
-                  <button type="button" onClick={handleAddTask} className="tp-button w-auto px-4">
-                    Create
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingTask(false);
-                      setNewTaskTitle("");
-                    }}
-                    className="tp-button w-auto px-4"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => setIsAddingTask(true)}
+            className="tp-button mt-4 inline-flex w-auto px-4"
+          >
+            Add Task
+          </button>
         </section>
       </div>
+
+      {isAddingTask ? (
+        <div className="body-modal">
+          <div className="body-modal-panel">
+            <div className="tp-panel-head">
+              <p className="tp-kicker">New Task</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingTask(false);
+                  setNewTaskTitle("");
+                }}
+                className="tp-button tp-button-inline"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="body-label">Title</label>
+                <input
+                  value={newTaskTitle}
+                  onChange={(event) => setNewTaskTitle(event.target.value)}
+                  className="body-input"
+                  placeholder="Task title"
+                />
+              </div>
+              <div>
+                <label className="body-label">Priority</label>
+                <select
+                  value={newTaskPriority}
+                  onChange={(event) => setNewTaskPriority(event.target.value as "main" | "secondary")}
+                  className="body-select"
+                >
+                  <option value="main">Main (2 pts)</option>
+                  <option value="secondary">Secondary (1 pt)</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={handleAddTask} className="tp-button w-auto px-4">
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingTask(false);
+                  setNewTaskTitle("");
+                }}
+                className="tp-button w-auto px-4"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

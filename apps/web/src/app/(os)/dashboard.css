@@ -277,36 +277,50 @@ html[data-theme="hud"] body.tp-os-flat {
 
 .body-calendar {
   display: grid;
-  grid-template-columns: repeat(7, 34px);
-  gap: 8px;
+  grid-template-columns: repeat(7, 30px);
+  gap: 6px;
 }
 
 .body-day {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.55);
   color: rgba(255, 255, 255, 0.55);
-  font-size: 12px;
+  font-size: 11px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
-.body-day.is-grey {
+.body-day.day-grey {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.6);
   box-shadow: none;
 }
 
-.body-day.is-green {
-  background: rgba(30, 255, 120, 0.1);
-  border: 1px solid rgba(30, 255, 120, 0.38);
-  color: rgba(220, 255, 235, 0.92);
-  box-shadow: 0 0 18px rgba(30, 255, 120, 0.18);
+.body-day.day-red {
+  background: rgba(255, 60, 60, 0.08);
+  border: 1px solid rgba(255, 60, 60, 0.35);
+  color: rgba(255, 220, 220, 0.9);
+  box-shadow: 0 0 calc(8px + 10px * var(--heat)) rgba(255, 60, 60, calc(0.25 + 0.55 * var(--heat)));
+}
+
+.body-day.day-yellow {
+  background: rgba(255, 200, 0, 0.08);
+  border: 1px solid rgba(255, 200, 0, calc(0.35 + 0.55 * var(--heat)));
+  color: rgba(255, 245, 210, 0.92);
+  box-shadow: 0 0 calc(8px + 10px * var(--heat)) rgba(255, 200, 0, calc(0.25 + 0.55 * var(--heat)));
+}
+
+.body-day.day-green {
+  background: rgba(70, 255, 140, 0.1);
+  border: 1px solid rgba(70, 255, 140, calc(0.35 + 0.55 * var(--heat)));
+  color: rgba(220, 255, 235, 0.95);
+  box-shadow: 0 0 calc(8px + 10px * var(--heat)) rgba(70, 255, 140, calc(0.25 + 0.55 * var(--heat)));
 }
 
 .body-day.is-selected {
@@ -315,7 +329,7 @@ html[data-theme="hud"] body.tp-os-flat {
     0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
-.body-day.is-future {
+.body-day.is-disabled {
   background: rgba(255, 255, 255, 0.01);
   border: 1px dashed rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.22);
@@ -324,6 +338,41 @@ html[data-theme="hud"] body.tp-os-flat {
 
 .body-day:disabled {
   cursor: not-allowed;
+}
+
+.body-heatbars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 64px;
+}
+
+.body-heatbar {
+  width: 4px;
+  min-height: 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: height 0.3s ease;
+}
+
+.body-heatbar.day-grey {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.body-heatbar.day-red {
+  background: rgba(255, 60, 60, 0.12);
+  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(255, 60, 60, calc(0.2 + 0.5 * var(--heat)));
+}
+
+.body-heatbar.day-yellow {
+  background: rgba(255, 200, 0, 0.12);
+  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(255, 200, 0, calc(0.2 + 0.5 * var(--heat)));
+}
+
+.body-heatbar.day-green {
+  background: rgba(70, 255, 140, 0.14);
+  box-shadow: 0 0 calc(6px + 8px * var(--heat)) rgba(70, 255, 140, calc(0.2 + 0.5 * var(--heat)));
 }
 
 .body-task-row {

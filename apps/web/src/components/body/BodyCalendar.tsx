@@ -2,12 +2,16 @@
 
 import * as React from "react";
 
-import { getBodyCompletionMapForRange } from "../../lib/body";
+import { getBodyScoreMapForRange } from "../../lib/body";
 
 type BodyCalendarProps = {
   selectedDateKey: string;
   onSelectDate: (dateKey: string) => void;
   refreshKey?: number;
+  startDateKey?: string;
+  visibleMonth?: Date;
+  onVisibleMonthChange?: (next: Date) => void;
+  scoreMap?: Record<string, number>;
 };
 
 const MONTH_NAMES = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -35,53 +39,80 @@ function addMonths(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
-export function BodyCalendar({ selectedDateKey, onSelectDate, refreshKey }: BodyCalendarProps) {
+export function BodyCalendar({
+  selectedDateKey,
+  onSelectDate,
+  refreshKey,
+  startDateKey,
+  visibleMonth,
+  onVisibleMonthChange,
+  scoreMap: scoreMapProp,
+}: BodyCalendarProps) {
   const today = React.useMemo(() => new Date(), []);
-  const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(today));
-  const [completionMap, setCompletionMap] = React.useState<Record<string, boolean>>({});
+  const [internalMonth, setInternalMonth] = React.useState<Date>(() => startOfMonth(today));
+  const [scoreMapState, setScoreMapState] = React.useState<Record<string, number>>({});
+  const month = visibleMonth ?? internalMonth;
+  const setMonth = onVisibleMonthChange ?? setInternalMonth;
+  const scoreMap = scoreMapProp ?? scoreMapState;
 
-  const monthLabel = `${MONTH_NAMES[visibleMonth.getMonth()]} ${visibleMonth.getFullYear()}`;
-  const totalDays = getDaysInMonth(visibleMonth);
-  const monthStartKey = toDateKey(startOfMonth(visibleMonth));
-  const monthEndKey = toDateKey(endOfMonth(visibleMonth));
+  const monthLabel = `${MONTH_NAMES[month.getMonth()]} ${month.getFullYear()}`;
+  const totalDays = getDaysInMonth(month);
+  const monthStartKey = toDateKey(startOfMonth(month));
+  const monthEndKey = toDateKey(endOfMonth(month));
   const todayKey = toDateKey(today);
 
   React.useEffect(() => {
+    if (scoreMapProp) return;
     let mounted = true;
     async function load() {
-      const map = await getBodyCompletionMapForRange(monthStartKey, monthEndKey);
-      if (mounted) setCompletionMap(map);
+      const map = await getBodyScoreMapForRange(monthStartKey, monthEndKey);
+      if (mounted) setScoreMapState(map);
     }
     load();
     return () => {
       mounted = false;
     };
-  }, [monthStartKey, monthEndKey, refreshKey]);
+  }, [monthStartKey, monthEndKey, refreshKey, scoreMapProp]);
+
+  function getDayVisual(dateKey: string, scorePct: number, isFuture: boolean, isBeforeStart: boolean) {
+    if (isFuture || isBeforeStart) {
+      return { state: "grey" as const, intensity: 0 };
+    }
+    if (scorePct === 0) {
+      return { state: "red" as const, intensity: 0 };
+    }
+    if (scorePct < 60) {
+      return { state: "yellow" as const, intensity: Math.min(1, scorePct / 60) };
+    }
+    return { state: "green" as const, intensity: Math.min(1, (scorePct - 60) / 40) };
+  }
 
   function handlePrevMonth() {
-    setVisibleMonth((prev) => addMonths(prev, -1));
+    setMonth(addMonths(month, -1));
   }
 
   function handleNextMonth() {
-    const next = addMonths(visibleMonth, 1);
+    const next = addMonths(month, 1);
     if (next.getFullYear() > today.getFullYear()) return;
     if (next.getFullYear() === today.getFullYear() && next.getMonth() > today.getMonth()) return;
-    setVisibleMonth(next);
+    setMonth(next);
   }
 
   const days = React.useMemo(() => {
     return Array.from({ length: totalDays }, (_, i) => {
-      const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), i + 1);
+      const date = new Date(month.getFullYear(), month.getMonth(), i + 1);
       const dateKey = toDateKey(date);
       const isFuture = dateKey > todayKey;
       const isSelected = dateKey === selectedDateKey;
-      const hasCompleted = completionMap[dateKey] === true;
-      return { dateKey, day: i + 1, isFuture, isSelected, hasCompleted };
+      const isBeforeStart = startDateKey ? dateKey < startDateKey : false;
+      const scorePct = scoreMap[dateKey] ?? 0;
+      const visual = getDayVisual(dateKey, scorePct, isFuture, isBeforeStart);
+      return { dateKey, day: i + 1, isFuture, isSelected, isBeforeStart, scorePct, visual };
     });
-  }, [completionMap, selectedDateKey, totalDays, visibleMonth, todayKey]);
+  }, [scoreMap, selectedDateKey, totalDays, month, todayKey, startDateKey]);
 
   return (
-    <section className="tp-panel p-5 sm:p-6">
+    <section className="tp-panel p-4">
       <div className="tp-panel-head">
         <div>
           <p className="tp-kicker">Calendar</p>
@@ -101,9 +132,12 @@ export function BodyCalendar({ selectedDateKey, onSelectDate, refreshKey }: Body
         {days.map((day) => {
           const classNames = [
             "body-day",
-            day.isFuture ? "is-future" : "is-available",
-            day.hasCompleted ? "is-green" : "is-grey",
+            day.visual.state === "grey" ? "day-grey" : "",
+            day.visual.state === "red" ? "day-red" : "",
+            day.visual.state === "yellow" ? "day-yellow" : "",
+            day.visual.state === "green" ? "day-green" : "",
             day.isSelected ? "is-selected" : "",
+            day.isFuture || day.isBeforeStart ? "is-disabled" : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -112,8 +146,9 @@ export function BodyCalendar({ selectedDateKey, onSelectDate, refreshKey }: Body
             <button
               key={day.dateKey}
               type="button"
-              disabled={day.isFuture}
+              disabled={day.isFuture || day.isBeforeStart}
               className={classNames}
+              style={{ ["--heat" as never]: day.visual.intensity }}
               onClick={() => onSelectDate(day.dateKey)}
             >
               {day.day}
