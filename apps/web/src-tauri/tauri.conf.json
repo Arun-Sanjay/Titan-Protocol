@@ -1,0 +1,30 @@
+{
+  "build": {
+    "beforeDevCommand": "PORT=3000 npm run dev",
+    "beforeBuildCommand": "npm run build:tauri",
+    "devPath": "http://localhost:3000",
+    "distDir": "../out"
+  },
+  "package": {
+    "productName": "Titan Protocol",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "bundle": {
+      "identifier": "com.titan.protocol",
+      "targets": ["app", "dmg"],
+      "icon": ["icons/icon.png"]
+    },
+    "windows": [
+      {
+        "title": "Titan Protocol",
+        "width": 1440,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true
+      }
+    ]
+  }
+}

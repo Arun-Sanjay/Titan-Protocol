@@ -5,10 +5,14 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "build:tauri": "TAURI=1 next build --webpack && TAURI=1 next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
+    "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build"
   },
   "dependencies": {
+    "@tauri-apps/api": "^1.5.0",
     "cmdk": "^1.1.1",
     "dexie": "^4.3.0",
     "framer-motion": "^12.34.3",
@@ -21,6 +25,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^1.5.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "latest",
     "@types/react": "latest",

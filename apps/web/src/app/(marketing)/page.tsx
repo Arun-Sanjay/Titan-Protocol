@@ -15,6 +15,10 @@ const SCORE_BARS = [
 export default function MarketingBootPage() {
   const router = useRouter();
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const unlockAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const enterAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const transitionAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const unlockPlayedRef = React.useRef(false);
 
   const [readyToEnter, setReadyToEnter] = React.useState(false);
   const [canEnter, setCanEnter] = React.useState(false);
@@ -40,6 +44,19 @@ export default function MarketingBootPage() {
     const onTimeUpdate = () => {
       if (video.currentTime >= 4) {
         setCanEnter(true);
+        if (!unlockPlayedRef.current) {
+          unlockPlayedRef.current = true;
+          const audio = unlockAudioRef.current;
+          if (audio) {
+            try {
+              audio.currentTime = 0;
+              audio.volume = 0.25;
+              void audio.play();
+            } catch {
+              // ignore autoplay restrictions
+            }
+          }
+        }
       }
     };
 
@@ -73,9 +90,33 @@ export default function MarketingBootPage() {
   const handleEnter = React.useCallback(() => {
     const video = videoRef.current;
     if (video) video.pause();
+    const enterAudio = enterAudioRef.current;
+    const transitionAudio = transitionAudioRef.current;
+    if (enterAudio) {
+      try {
+        enterAudio.currentTime = 0;
+        enterAudio.volume = 0.35;
+        void enterAudio.play();
+      } catch {
+        // ignore playback errors
+      }
+    }
+    if (transitionAudio) {
+      setTimeout(() => {
+        try {
+          transitionAudio.currentTime = 0;
+          transitionAudio.volume = 0.3;
+          void transitionAudio.play();
+        } catch {
+          // ignore playback errors
+        }
+      }, 120);
+    }
     setReadyToEnter(true);
     playClick();
-    router.push("/os");
+    setTimeout(() => {
+      router.push("/os");
+    }, 180);
   }, [router]);
 
   React.useEffect(() => {
@@ -108,6 +149,9 @@ export default function MarketingBootPage() {
       >
         <source src="/boot.mp4" type="video/mp4" />
       </video>
+      <audio ref={unlockAudioRef} src="/audio/boot-unlock.mp3" preload="auto" />
+      <audio ref={enterAudioRef} src="/audio/boot-enter.mp3" preload="auto" />
+      <audio ref={transitionAudioRef} src="/audio/boot-transition.mp3" preload="auto" />
 
       <div className="tpOverlay">
         <div className="tpTopBar chrome-panel">
