@@ -1,15 +1,15 @@
-import Link from "next/link";
+import MoneyClient from "./MoneyClient";
 
-export default function MoneyTodayPage() {
-  return (
-    <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
-      <section className="tp-panel p-6">
-        <h1 className="tp-title text-3xl font-bold md:text-4xl">MONEY ENGINE</h1>
-        <p className="mt-3 text-sm text-white/70">Not set up yet.</p>
-        <Link href="/os" className="tp-button mt-5 inline-flex px-4 py-2 text-sm text-white">
-          Back to Dashboard
-        </Link>
-      </section>
-    </main>
-  );
+type SearchParams = {
+  date?: string;
+};
+
+export default async function MoneyPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const initialDate = sp?.date ?? null;
+  return <MoneyClient initialDate={initialDate} />;
 }

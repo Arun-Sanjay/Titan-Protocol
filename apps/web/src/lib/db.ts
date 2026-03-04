@@ -42,6 +42,46 @@ export type MindTaskCompletion = {
   completed_at: string | null;
 };
 
+export type MoneyMeta = {
+  id: "money";
+  startDate: string;
+  createdAt: number;
+};
+
+export type MoneyTask = {
+  id?: number;
+  title: string;
+  priority: "main" | "secondary";
+  createdAt: number;
+};
+
+export type MoneyLog = {
+  id?: number;
+  dateKey: string;
+  completedTaskIds: number[];
+  createdAt: number;
+};
+
+export type GeneralMeta = {
+  id: "general";
+  startDate: string;
+  createdAt: number;
+};
+
+export type GeneralTask = {
+  id?: number;
+  title: string;
+  priority: "main" | "secondary";
+  createdAt: number;
+};
+
+export type GeneralLog = {
+  id?: number;
+  dateKey: string;
+  completedTaskIds: number[];
+  createdAt: number;
+};
+
 export type NutritionProfile = {
   id: string;
   created_at: string;
@@ -80,6 +120,12 @@ class TitanBodyDB extends Dexie {
   mind_meta!: Table<MindMeta, "mind">;
   mind_tasks!: Table<MindTask, string>;
   mind_task_completions!: Table<MindTaskCompletion, string>;
+  money_meta!: Table<MoneyMeta, "money">;
+  money_tasks!: Table<MoneyTask, number>;
+  money_logs!: Table<MoneyLog, number>;
+  general_meta!: Table<GeneralMeta, "general">;
+  general_tasks!: Table<GeneralTask, number>;
+  general_logs!: Table<GeneralLog, number>;
   nutrition_profiles!: Table<NutritionProfile, string>;
   nutrition_meals!: Table<NutritionMeal, string>;
 
@@ -210,6 +256,22 @@ class TitanBodyDB extends Dexie {
       mind_meta: "id",
       mind_tasks: "id, created_at, kind, is_active",
       mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(8).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      money_meta: "id",
+      money_tasks: "++id, createdAt, priority",
+      money_logs: "++id, dateKey",
+      general_meta: "id",
+      general_tasks: "++id, createdAt, priority",
+      general_logs: "++id, dateKey",
       nutrition_profiles: "id, updated_at",
       nutrition_meals: "id, dateISO, created_at",
     });
