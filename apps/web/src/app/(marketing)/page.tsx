@@ -17,6 +17,7 @@ export default function MarketingBootPage() {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
   const [readyToEnter, setReadyToEnter] = React.useState(false);
+  const [canEnter, setCanEnter] = React.useState(false);
   const [needsTapToPlay, setNeedsTapToPlay] = React.useState(false);
 
   React.useEffect(() => {
@@ -36,10 +37,18 @@ export default function MarketingBootPage() {
       }
     };
 
+    const onTimeUpdate = () => {
+      if (video.currentTime >= 4) {
+        setCanEnter(true);
+      }
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
     void tryPlay();
 
     return () => {
       cancelled = true;
+      video.removeEventListener("timeupdate", onTimeUpdate);
     };
   }, [readyToEnter]);
 
@@ -58,9 +67,13 @@ export default function MarketingBootPage() {
     const video = videoRef.current;
     if (video) video.pause();
     setReadyToEnter(true);
+    setCanEnter(true);
   }, []);
 
   const handleEnter = React.useCallback(() => {
+    const video = videoRef.current;
+    if (video) video.pause();
+    setReadyToEnter(true);
     playClick();
     router.push("/os");
   }, [router]);
@@ -88,6 +101,7 @@ export default function MarketingBootPage() {
         controls={false}
         onEnded={() => {
           setReadyToEnter(true);
+          setCanEnter(true);
           setNeedsTapToPlay(false);
         }}
         onError={() => setNeedsTapToPlay(true)}
@@ -140,7 +154,7 @@ export default function MarketingBootPage() {
         </aside>
 
         <div className="tpCenterContent">
-          {readyToEnter ? (
+          {readyToEnter || canEnter ? (
             <div className="tpCtaWrap">
               <button type="button" className="tpArcButton" onClick={handleEnter}>
                 <span className="tpArcReactor" aria-hidden="true">

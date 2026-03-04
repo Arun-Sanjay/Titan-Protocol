@@ -201,7 +201,7 @@ html[data-theme="marketing"] body {
 
 .tpCenterContent {
   left: 50%;
-  bottom: 10vh;
+  bottom: 6vh;
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
@@ -367,7 +367,7 @@ html[data-theme="marketing"] body {
   }
 
   .tpCenterContent {
-    bottom: 9vh;
+    bottom: 6vh;
   }
 
   .tpArcReactor {
