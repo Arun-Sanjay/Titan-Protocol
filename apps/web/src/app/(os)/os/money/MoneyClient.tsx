@@ -2,33 +2,54 @@
 
 import * as React from "react";
 
+import type { MoneyLoan, MoneyTx } from "../../../../lib/db";
+import { ThreeMonthCalendar } from "../../../../components/calendar/ThreeMonthCalendar";
+import { assertDateISO, monthBounds, todayISO } from "../../../../lib/date";
 import {
-  addMoneyTask,
-  deleteMoneyTask,
-  ensureMoneyMeta,
-  getMoneyScoreMapForRange,
-  getOrCreateMoneyLog,
-  listMoneyTasks,
-  renameMoneyTask,
-  toggleMoneyTaskForDate,
-  updateMoneyTaskPriority,
+  addBorrowed,
+  addExpense,
+  addIncome,
+  addRepayment,
+  computeDayTotals,
+  computeMonthTotals,
+  computeOutstandingBorrowed,
+  deleteLoan,
+  deleteTx,
+  getMoneyStartDate,
+  listLoans,
+  listTxByDate,
+  listTxByRange,
+  updateLoan,
+  updateTx,
 } from "../../../../lib/money";
-import type { MoneyTask } from "../../../../lib/db";
-import { computeBodyDayScore } from "../../../../lib/bodyScore";
-import { assertDateISO, todayISO } from "../../../../lib/date";
-import { BodyCalendar } from "../../../../components/body/BodyCalendar";
-import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
+
+type ModalType = "expense" | "income" | "borrowed" | "repayment" | "edit-tx" | "edit-loan";
+
+type TxDraft = {
+  type: "expense" | "income" | "borrowed" | "repayment";
+  amount: string;
+  dateISO: string;
+  category: string;
+  bucket: "need" | "want";
+  note: string;
+  lender: string;
+  dueISO: string;
+  loanId: string | null;
+};
+
+type LoanDraft = {
+  id: string;
+  lender: string;
+  amount: string;
+  dateISO: string;
+  dueISO: string;
+};
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-}
-
-function parseDateKey(dateKey: string): Date {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  return new Date(year, month - 1, day);
 }
 
 function startOfMonth(date: Date): Date {
@@ -39,11 +60,67 @@ function endOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
-function addDays(date: Date, delta: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + delta);
-  return next;
+function addMonths(date: Date, delta: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+function getRangeFromOffset(monthOffset: number) {
+  const base = addMonths(startOfMonth(new Date()), monthOffset);
+  const start = toDateKey(startOfMonth(addMonths(base, -1)));
+  const end = toDateKey(endOfMonth(addMonths(base, 1)));
+  return { start, end };
+}
+
+function txLabel(tx: MoneyTx) {
+  switch (tx.type) {
+    case "expense":
+      return tx.category ? `Expense • ${tx.category}` : "Expense";
+    case "income":
+      return "Income";
+    case "borrowed":
+      return "Borrowed";
+    case "repayment":
+      return "Repayment";
+    default:
+      return tx.type;
+  }
+}
+
+function txTone(tx: MoneyTx) {
+  if (tx.type === "expense" || tx.type === "repayment") return "text-red-200";
+  return "text-emerald-200";
+}
+
+function txIcon(tx: MoneyTx) {
+  switch (tx.type) {
+    case "expense":
+      return "−";
+    case "income":
+      return "+";
+    case "borrowed":
+      return "⇧";
+    case "repayment":
+      return "↩";
+    default:
+      return "•";
+  }
+}
+
+const EMPTY_DRAFT: TxDraft = {
+  type: "expense",
+  amount: "",
+  dateISO: todayISO(),
+  category: "",
+  bucket: "need",
+  note: "",
+  lender: "",
+  dueISO: "",
+  loanId: null,
+};
 
 export default function MoneyClient({ initialDate }: { initialDate: string | null }) {
   const todayKey = React.useMemo(() => todayISO(), []);
@@ -58,495 +135,667 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
     return todayKey;
   }, [initialDate, todayKey]);
 
-  const [selectedDateKey, setSelectedDateKey] = React.useState<string>(initialDateKey);
-  const [tasks, setTasks] = React.useState<MoneyTask[]>([]);
-  const [completedIds, setCompletedIds] = React.useState<Set<number>>(new Set());
-  const [moneyStartDateKey, setMoneyStartDateKey] = React.useState<string>("");
-  const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(parseDateKey(initialDateKey)));
-  const [monthScoreMap, setMonthScoreMap] = React.useState<Record<string, number>>({});
-  const [newTaskTitle, setNewTaskTitle] = React.useState<string>("");
-  const [newTaskPriority, setNewTaskPriority] = React.useState<"main" | "secondary">("main");
-  const [isAddingTask, setIsAddingTask] = React.useState<boolean>(false);
-  const [calendarTick, setCalendarTick] = React.useState(0);
+  const [selectedDateISO, setSelectedDateISO] = React.useState<string>(initialDateKey);
+  const [monthOffset, setMonthOffset] = React.useState(0);
+  const [startDateISO, setStartDateISO] = React.useState<string>(todayKey);
+  const [dayTx, setDayTx] = React.useState<MoneyTx[]>([]);
+  const [monthTotals, setMonthTotals] = React.useState({
+    spent: 0,
+    income: 0,
+    net: 0,
+    needs: 0,
+    wants: 0,
+    categories: {} as Record<string, number>,
+  });
+  const [dayTotals, setDayTotals] = React.useState({ spent: 0, income: 0, net: 0 });
+  const [outstandingBorrowed, setOutstandingBorrowed] = React.useState(0);
+  const [loans, setLoans] = React.useState<MoneyLoan[]>([]);
+  const [scoreByDate, setScoreByDate] = React.useState<Record<string, number>>({});
+  const [modal, setModal] = React.useState<ModalType | null>(null);
+  const [txDraft, setTxDraft] = React.useState<TxDraft>(() => ({ ...EMPTY_DRAFT, dateISO: initialDateKey }));
+  const [loanDraft, setLoanDraft] = React.useState<LoanDraft | null>(null);
+  const [editingTx, setEditingTx] = React.useState<MoneyTx | null>(null);
+  const [formError, setFormError] = React.useState<string | null>(null);
+  const [dataTick, setDataTick] = React.useState(0);
 
-  function handleDateChange(nextDateKey: string) {
-    if (!nextDateKey) return;
-    try {
-      setSelectedDateKey(assertDateISO(nextDateKey));
-    } catch (err) {
-      console.error(err);
-      setSelectedDateKey(todayISO());
-    }
-  }
-
-  React.useEffect(() => {
-    if (!selectedDateKey) return;
-    let safeDate: string;
-    try {
-      safeDate = assertDateISO(selectedDateKey);
-    } catch (err) {
-      console.error(err);
-      return;
-    }
-    const selectedDate = parseDateKey(safeDate);
-    if (
-      selectedDate.getFullYear() !== visibleMonth.getFullYear() ||
-      selectedDate.getMonth() !== visibleMonth.getMonth()
-    ) {
-      setVisibleMonth(startOfMonth(selectedDate));
-    }
-  }, [selectedDateKey, visibleMonth]);
+  const monthKey = React.useMemo(() => selectedDateISO, [selectedDateISO]);
 
   React.useEffect(() => {
-    let isMounted = true;
-
-    async function hydrate() {
+    let mounted = true;
+    async function loadDay() {
+      if (!selectedDateISO) return;
       let safeDate: string;
       try {
-        safeDate = assertDateISO(selectedDateKey);
+        safeDate = assertDateISO(selectedDateISO);
       } catch (err) {
         console.error(err);
         return;
       }
-      const meta = await ensureMoneyMeta(safeDate);
-      setMoneyStartDateKey(meta.startDate);
-      const [taskDefs, log] = await Promise.all([listMoneyTasks(), getOrCreateMoneyLog(safeDate)]);
-
-      if (!isMounted) return;
-      setTasks(taskDefs);
-      setCompletedIds(new Set(log.completedTaskIds));
+      const [tx, totals] = await Promise.all([listTxByDate(safeDate), computeDayTotals(safeDate)]);
+      if (!mounted) return;
+      setDayTx(tx);
+      setDayTotals(totals);
     }
-
-    hydrate();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedDateKey]);
-
-  React.useEffect(() => {
-    let mounted = true;
-    async function loadMonthScores() {
-      const startKey = toDateKey(startOfMonth(visibleMonth));
-      const endKey = toDateKey(endOfMonth(visibleMonth));
-      const map = await getMoneyScoreMapForRange(startKey, endKey);
-      if (mounted) setMonthScoreMap(map);
-    }
-    loadMonthScores();
+    loadDay();
     return () => {
       mounted = false;
     };
-  }, [visibleMonth, calendarTick]);
+  }, [selectedDateISO, dataTick]);
 
-  async function handleToggleTask(task: MoneyTask) {
-    if (!task.id) return;
-    const log = await toggleMoneyTaskForDate(selectedDateKey, task.id);
-    setCompletedIds(new Set(log.completedTaskIds));
-    setCalendarTick((prev) => prev + 1);
-    if (!moneyStartDateKey || selectedDateKey < moneyStartDateKey) {
-      setMoneyStartDateKey(selectedDateKey);
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadMonth() {
+      if (!monthKey) return;
+      const totals = await computeMonthTotals(monthKey);
+      if (!mounted) return;
+      setMonthTotals(totals);
+    }
+    loadMonth();
+    return () => {
+      mounted = false;
+    };
+  }, [monthKey, dataTick]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadLoans() {
+      const [loanRows, outstanding, earliest] = await Promise.all([
+        listLoans("unpaid"),
+        computeOutstandingBorrowed(),
+        getMoneyStartDate(),
+      ]);
+      if (!mounted) return;
+      setLoans(loanRows);
+      setOutstandingBorrowed(outstanding);
+      setStartDateISO(earliest);
+    }
+    loadLoans();
+    return () => {
+      mounted = false;
+    };
+  }, [dataTick]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadCalendarScores() {
+      const { start, end } = getRangeFromOffset(monthOffset);
+      const tx = await listTxByRange(start, end);
+      const map: Record<string, number> = {};
+      tx.forEach((row) => {
+        if (!row.dateISO) return;
+        map[row.dateISO] = 100;
+      });
+      if (mounted) setScoreByDate(map);
+    }
+    loadCalendarScores();
+    return () => {
+      mounted = false;
+    };
+  }, [monthOffset, dataTick]);
+
+  function openModal(type: TxDraft["type"], seed?: Partial<TxDraft>) {
+    setFormError(null);
+    setEditingTx(null);
+    setLoanDraft(null);
+    setTxDraft({
+      ...EMPTY_DRAFT,
+      dateISO: selectedDateISO,
+      type,
+      ...seed,
+    });
+    setModal(type);
+  }
+
+  async function handleSaveTx() {
+    setFormError(null);
+    const amount = Number(txDraft.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setFormError("Amount must be a valid number.");
+      return;
+    }
+    let safeDate: string;
+    try {
+      safeDate = assertDateISO(txDraft.dateISO);
+    } catch (err) {
+      console.error(err);
+      setFormError("Date must be valid.");
+      return;
+    }
+
+    try {
+      if (editingTx) {
+        if (editingTx.type === "expense") {
+          await updateTx(editingTx.id, {
+            amount,
+            dateISO: safeDate,
+            category: txDraft.category || null,
+            bucket: txDraft.bucket,
+            note: txDraft.note || null,
+          });
+        } else if (editingTx.type === "income") {
+          await updateTx(editingTx.id, {
+            amount,
+            dateISO: safeDate,
+            note: txDraft.note || null,
+          });
+        } else if (editingTx.type === "borrowed") {
+          await updateTx(editingTx.id, {
+            amount,
+            dateISO: safeDate,
+            note: txDraft.note || null,
+          });
+          if (editingTx.loanId) {
+            await updateLoan(editingTx.loanId, {
+              amount,
+              lender: txDraft.lender || null,
+              dueISO: txDraft.dueISO || null,
+              dateISO: safeDate,
+            });
+          }
+        } else if (editingTx.type === "repayment") {
+          await updateTx(editingTx.id, {
+            amount,
+            dateISO: safeDate,
+            note: txDraft.note || null,
+          });
+        }
+      } else if (txDraft.type === "expense") {
+        await addExpense({
+          dateISO: safeDate,
+          amount,
+          category: txDraft.category || null,
+          bucket: txDraft.bucket,
+          note: txDraft.note || null,
+        });
+      } else if (txDraft.type === "income") {
+        await addIncome({
+          dateISO: safeDate,
+          amount,
+          note: txDraft.note || null,
+        });
+      } else if (txDraft.type === "borrowed") {
+        await addBorrowed({
+          dateISO: safeDate,
+          amount,
+          lender: txDraft.lender || null,
+          dueISO: txDraft.dueISO || null,
+          note: txDraft.note || null,
+        });
+      } else if (txDraft.type === "repayment" && txDraft.loanId) {
+        await addRepayment({
+          loanId: txDraft.loanId,
+          dateISO: safeDate,
+          amount,
+          note: txDraft.note || null,
+        });
+      }
+      setModal(null);
+      setDataTick((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      setFormError(err instanceof Error ? err.message : String(err));
     }
   }
 
-  async function handleAddTask() {
-    const title = newTaskTitle.trim();
-    if (!title) return;
-    await addMoneyTask(title, newTaskPriority);
-    const storedTasks = await listMoneyTasks();
-    setTasks(storedTasks);
-    setCalendarTick((prev) => prev + 1);
-    setNewTaskTitle("");
-    setNewTaskPriority("main");
-    setIsAddingTask(false);
+  async function handleDeleteTx(tx: MoneyTx) {
+    if (!confirm("Delete this transaction?")) return;
+    await deleteTx(tx.id);
+    setDataTick((prev) => prev + 1);
   }
 
-  const tasksWithCompletion = React.useMemo(
-    () =>
-      tasks.map((task) => ({
-        ...task,
-        completed: completedIds.has(task.id ?? -1),
-      })),
-    [completedIds, tasks],
-  );
+  async function handleDeleteLoan(loan: MoneyLoan) {
+    if (!confirm("Delete this loan and related transactions?")) return;
+    await deleteLoan(loan.id);
+    setDataTick((prev) => prev + 1);
+  }
 
-  const mainTasks = tasksWithCompletion.filter((task) => task.priority === "main");
-  const secondaryTasks = tasksWithCompletion.filter((task) => task.priority === "secondary");
-  const hasTasks = tasks.length > 0;
-  const score = computeBodyDayScore(tasksWithCompletion as Array<MoneyTask & { completed: boolean }>);
-  const monthStartKey = React.useMemo(() => toDateKey(startOfMonth(visibleMonth)), [visibleMonth]);
-  const monthEndKey = React.useMemo(() => toDateKey(endOfMonth(visibleMonth)), [visibleMonth]);
-  const referenceKey = selectedDateKey;
+  function handleEditTx(tx: MoneyTx) {
+    setEditingTx(tx);
+    const loan = tx.loanId ? loans.find((item) => item.id === tx.loanId) : null;
+    setTxDraft({
+      type: tx.type,
+      amount: String(tx.amount),
+      dateISO: tx.dateISO,
+      category: tx.category ?? "",
+      bucket: (tx.bucket as "need" | "want") ?? "need",
+      note: tx.note ?? "",
+      lender: loan?.lender ?? "",
+      dueISO: loan?.dueISO ?? "",
+      loanId: tx.loanId ?? null,
+    });
+    setModal("edit-tx");
+  }
 
-  const consistency = React.useMemo(() => {
-    const effectiveStartKey =
-      moneyStartDateKey && moneyStartDateKey > monthStartKey ? moneyStartDateKey : monthStartKey;
-    const effectiveEndKey = referenceKey < monthEndKey ? referenceKey : monthEndKey;
+  function handleEditLoan(loan: MoneyLoan) {
+    setLoanDraft({
+      id: loan.id,
+      lender: loan.lender ?? "",
+      amount: String(loan.amount),
+      dateISO: loan.dateISO,
+      dueISO: loan.dueISO ?? "",
+    });
+    setModal("edit-loan");
+  }
 
-    if (!effectiveStartKey || effectiveStartKey > effectiveEndKey) {
-      return { consistencyPct: 0, consistentDays: 0, daysElapsed: 0, currentStreak: 0, bestStreak: 0 };
+  async function handleSaveLoan() {
+    if (!loanDraft) return;
+    const amount = Number(loanDraft.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setFormError("Amount must be valid.");
+      return;
     }
-
-    let daysElapsed = 0;
-    let consistentDays = 0;
-    let currentStreak = 0;
-    let bestStreak = 0;
-    let runningStreak = 0;
-
-    const startDate = parseDateKey(effectiveStartKey);
-    const endDate = parseDateKey(effectiveEndKey);
-    const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86400000) + 1;
-
-    for (let i = 0; i < totalDays; i += 1) {
-      const dateKey = toDateKey(addDays(startDate, i));
-      const scorePct = monthScoreMap[dateKey] ?? 0;
-      daysElapsed += 1;
-      if (scorePct >= 60) {
-        consistentDays += 1;
-        runningStreak += 1;
-        if (runningStreak > bestStreak) bestStreak = runningStreak;
-      } else {
-        runningStreak = 0;
-      }
+    try {
+      await updateLoan(loanDraft.id, {
+        amount,
+        lender: loanDraft.lender || null,
+        dateISO: assertDateISO(loanDraft.dateISO),
+        dueISO: loanDraft.dueISO || null,
+      });
+      setModal(null);
+      setLoanDraft(null);
+      setDataTick((prev) => prev + 1);
+    } catch (err) {
+      console.error(err);
+      setFormError(err instanceof Error ? err.message : String(err));
     }
+  }
 
-    const streakStartDate = parseDateKey(effectiveEndKey);
-    for (let i = 0; i < totalDays; i += 1) {
-      const dateKey = toDateKey(addDays(streakStartDate, -i));
-      const scorePct = monthScoreMap[dateKey] ?? 0;
-      if (scorePct >= 60) {
-        currentStreak += 1;
-      } else {
-        break;
-      }
+  const txGrouped = React.useMemo(() => {
+    const groups: Record<string, MoneyTx[]> = {};
+    dayTx.forEach((tx) => {
+      if (!groups[tx.dateISO]) groups[tx.dateISO] = [];
+      groups[tx.dateISO].push(tx);
+    });
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [dayTx]);
+
+  const start = React.useMemo(() => {
+    if (!selectedDateISO) return "";
+    try {
+      return monthBounds(selectedDateISO).start;
+    } catch (err) {
+      console.error(err);
+      return "";
     }
+  }, [selectedDateISO]);
 
-    const consistencyPct = daysElapsed === 0 ? 0 : Math.round((consistentDays / daysElapsed) * 100);
+  const topCategories = React.useMemo(() => {
+    return Object.entries(monthTotals.categories)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  }, [monthTotals.categories]);
 
-    return { consistencyPct, consistentDays, daysElapsed, currentStreak, bestStreak };
-  }, [moneyStartDateKey, monthEndKey, monthScoreMap, monthStartKey, referenceKey]);
+  const needsTotal = monthTotals.needs;
+  const wantsTotal = monthTotals.wants;
+  const needsPct = needsTotal + wantsTotal === 0 ? 0 : Math.round((needsTotal / (needsTotal + wantsTotal)) * 100);
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
-      <div className="grid grid-cols-[1fr_auto] items-start gap-6">
-        <header>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
           <h1 className="tp-title text-3xl font-bold md:text-4xl">MONEY ENGINE</h1>
-          <p className="tp-subtitle mt-3 text-sm text-white/70">Forever tracker • {selectedDateKey}</p>
-          <div className="mt-3 flex items-center gap-3 text-sm text-white/65">
-            <span className="body-consistency-label">Selected</span>
-            <input
-              type="date"
-              value={selectedDateKey}
-              onChange={(event) => handleDateChange(event.target.value)}
-              className="body-select h-8 px-2"
-            />
-          </div>
-        </header>
-
-        <section className="tp-panel p-4">
-          <p className="tp-kicker">Day Score</p>
-          <p className="tp-score-value text-3xl">{score.percent}%</p>
-          <p className="mt-2 text-xs text-white/65">
-            Main {score.mainDone}/{score.mainTotal} • Secondary {score.secondaryDone}/{score.secondaryTotal} • Points{" "}
-            {score.pointsDone}/{score.pointsTotal}
-          </p>
-          <div className="tp-progress mt-3">
-            <span style={{ width: `${score.percent}%` }} />
-          </div>
-        </section>
+          <p className="tp-subtitle mt-3 text-sm text-white/70">Cashflow tracking</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="body-label">Selected</label>
+          <input
+            type="date"
+            className="body-input w-[150px]"
+            value={selectedDateISO}
+            onChange={(event) => setSelectedDateISO(event.target.value)}
+          />
+          <button type="button" className="tp-button tp-button-inline" onClick={() => openModal("expense")}>
+            Add Expense
+          </button>
+          <button type="button" className="tp-button tp-button-inline" onClick={() => openModal("income")}>
+            Add Income
+          </button>
+          <button type="button" className="tp-button tp-button-inline" onClick={() => openModal("borrowed")}>
+            Add Borrowed
+          </button>
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <BodyCalendar
-          selectedDateKey={selectedDateKey}
-          onSelectDate={handleDateChange}
-          visibleMonth={visibleMonth}
-          onVisibleMonthChange={setVisibleMonth}
-          scoreMap={monthScoreMap}
-          referenceDateKey={selectedDateKey}
-          startDateKey={moneyStartDateKey}
+      <div className="space-y-4">
+        <ThreeMonthCalendar
+          selectedDateISO={selectedDateISO}
+          onSelect={setSelectedDateISO}
+          monthOffset={monthOffset}
+          onMonthOffsetChange={setMonthOffset}
+          scoreByDate={scoreByDate}
+          startDateISO={startDateISO}
+          todayISO={todayKey}
         />
 
-        <section className="tp-panel p-5 sm:p-6">
-          <p className="tp-kicker">Consistency</p>
-          <p className="tp-score-value text-3xl mt-2">{consistency.consistencyPct}%</p>
-          <div className="body-consistency-stack">
-            <div className="body-consistency-row">
-              <p className="body-consistency-label">Consistent Days</p>
-              <p className="body-consistency-value">
-                {consistency.consistentDays} / {consistency.daysElapsed}
-              </p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <section className="tp-panel p-4">
+            <p className="tp-kicker">Day Summary</p>
+            <p className="tp-muted mt-2 text-xs">{selectedDateISO}</p>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Spent</span>
+                <span>{formatMoney(dayTotals.spent)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Income</span>
+                <span>{formatMoney(dayTotals.income)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Net</span>
+                <span>{formatMoney(dayTotals.net)}</span>
+              </div>
             </div>
-            <div className="body-consistency-row">
-              <p className="body-consistency-label">Current Streak</p>
-              <p className="body-consistency-value">{consistency.currentStreak} days</p>
-            </div>
-            <div className="body-consistency-row">
-              <p className="body-consistency-label">Best Streak</p>
-              <p className="body-consistency-value">{consistency.bestStreak} days</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <BodyMonthlyHeatBars
-              visibleMonth={visibleMonth}
-              scoreMap={monthScoreMap}
-              todayKey={selectedDateKey}
-              startDateKey={moneyStartDateKey}
-            />
-          </div>
-        </section>
-      </div>
+          </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="tp-panel p-5 sm:p-6">
-          <div className="tp-panel-head">
-            <p className="tp-kicker">Secondary Tasks</p>
-            <p className="tp-muted">{selectedDateKey}</p>
-          </div>
-
-          {!hasTasks && secondaryTasks.length === 0 ? (
-            <div className="body-empty mt-4">
-              <p>No secondary tasks for this date.</p>
-              <button
-                type="button"
-                onClick={() => setIsAddingTask(true)}
-                className="tp-button mt-4 inline-flex w-auto px-4"
-              >
-                Add Task
-              </button>
+          <section className="tp-panel p-4">
+            <p className="tp-kicker">Month Summary</p>
+            <p className="tp-muted mt-2 text-xs">{start}</p>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Spent</span>
+                <span>{formatMoney(monthTotals.spent)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Income</span>
+                <span>{formatMoney(monthTotals.income)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="tp-muted">Net</span>
+                <span>{formatMoney(monthTotals.net)}</span>
+              </div>
             </div>
-          ) : (
-            <div className="mt-4 space-y-2">
-              {secondaryTasks.length === 0 ? (
-                <div className="body-empty">No secondary tasks.</div>
-              ) : (
-                secondaryTasks.map((task) => (
-                  <div key={task.id} className="body-task-row">
-                    <label className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        onChange={() => handleToggleTask(task)}
-                        className="h-4 w-4 accent-white"
-                      />
-                      <span>{task.title}</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="body-badge">SECONDARY</span>
-                      <details className="body-menu">
-                        <summary>•••</summary>
-                        <div className="body-menu-panel">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              await updateMoneyTaskPriority(task.id, "main");
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                              setCalendarTick((prev) => prev + 1);
-                            }}
-                          >
-                            Move to Main
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              const nextTitle = window.prompt("Rename task", task.title);
-                              if (!nextTitle) return;
-                              await renameMoneyTask(task.id, nextTitle.trim());
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                            }}
-                          >
-                            Rename
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              await deleteMoneyTask(task.id);
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                              setCompletedIds((prev) => {
-                                const next = new Set(prev);
-                                next.delete(task.id);
-                                return next;
-                              });
-                              setCalendarTick((prev) => prev + 1);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </details>
+          </section>
+
+          <section className="tp-panel p-4">
+            <p className="tp-kicker">Outstanding Borrowed</p>
+            <p className="mt-4 text-2xl font-semibold">{formatMoney(outstandingBorrowed)}</p>
+            <p className="tp-muted mt-2 text-xs">Unpaid loans</p>
+          </section>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_1.8fr]">
+          <section className="tp-panel p-4">
+            <p className="tp-kicker">Needs vs Wants</p>
+            <div className="mt-4">
+              <div className="h-2 w-full overflow-hidden rounded bg-white/5">
+                <div
+                  className="h-full bg-emerald-300/40"
+                  style={{ width: `${needsPct}%` }}
+                  aria-label="Needs"
+                />
+              </div>
+              <div className="mt-2 flex justify-between text-xs text-white/60">
+                <span>Needs: {formatMoney(needsTotal)}</span>
+                <span>Wants: {formatMoney(wantsTotal)}</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="tp-kicker">Top Categories</p>
+              <div className="mt-3 space-y-2 text-sm">
+                {topCategories.length === 0 ? (
+                  <p className="tp-muted text-xs">No spending yet.</p>
+                ) : (
+                  topCategories.map(([category, amount]) => (
+                    <div key={category} className="flex items-center justify-between">
+                      <span className="truncate">{category}</span>
+                      <span className="tabular-nums">{formatMoney(amount)}</span>
                     </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="tp-panel p-4">
+            <div className="tp-panel-head">
+              <div>
+                <p className="tp-kicker">Transactions</p>
+                <p className="tp-muted text-xs">Filtered by {selectedDateISO}</p>
+              </div>
+              <span className="tp-muted text-xs">Total: {dayTx.length}</span>
+            </div>
+            <div className="mt-4 space-y-3">
+              {txGrouped.length === 0 ? (
+                <div className="body-empty">No transactions for this day.</div>
+              ) : (
+                txGrouped.map(([dateKey, rows]) => (
+                  <div key={dateKey} className="space-y-2">
+                    <p className="tp-muted text-xs">{dateKey}</p>
+                    {rows.map((tx) => (
+                      <div key={tx.id} className="body-task-row">
+                        <div className="flex items-start gap-3">
+                          <span className="body-badge">{txIcon(tx)}</span>
+                          <div>
+                            <p className="text-sm">{txLabel(tx)}</p>
+                            {tx.note ? <p className="text-xs text-white/50">{tx.note}</p> : null}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm tabular-nums ${txTone(tx)}`}>{formatMoney(tx.amount)}</span>
+                          <details className="body-menu">
+                            <summary>•••</summary>
+                            <div className="body-menu-panel">
+                              <button type="button" onClick={() => handleEditTx(tx)}>
+                                Edit
+                              </button>
+                              <button type="button" onClick={() => handleDeleteTx(tx)}>
+                                Delete
+                              </button>
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))
               )}
             </div>
-          )}
+          </section>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setIsAddingTask(true)}
-            className="tp-button mt-4 inline-flex w-auto px-4"
-          >
-            Add Task
-          </button>
-        </section>
-
-        <section className="tp-panel p-5 sm:p-6">
+        <section className="tp-panel p-4">
           <div className="tp-panel-head">
-            <p className="tp-kicker">Main Tasks</p>
-            <p className="tp-muted">{selectedDateKey}</p>
+            <div>
+              <p className="tp-kicker">Borrowed</p>
+              <p className="tp-muted text-xs">Unpaid loans</p>
+            </div>
           </div>
-
-          {!hasTasks && mainTasks.length === 0 ? (
-            <div className="body-empty mt-4">
-              <p>No main tasks for this date.</p>
-              <button
-                type="button"
-                onClick={() => setIsAddingTask(true)}
-                className="tp-button mt-4 inline-flex w-auto px-4"
-              >
-                Add Task
-              </button>
-            </div>
-          ) : (
-            <div className="mt-4 space-y-2">
-              {mainTasks.length === 0 ? (
-                <div className="body-empty">No main tasks.</div>
-              ) : (
-                mainTasks.map((task) => (
-                  <div key={task.id} className="body-task-row">
-                    <label className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={task.completed}
-                        onChange={() => handleToggleTask(task)}
-                        className="h-4 w-4 accent-white"
-                      />
-                      <span>{task.title}</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="body-badge">MAIN</span>
-                      <details className="body-menu">
-                        <summary>•••</summary>
-                        <div className="body-menu-panel">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              await updateMoneyTaskPriority(task.id, "secondary");
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                              setCalendarTick((prev) => prev + 1);
-                            }}
-                          >
-                            Move to Secondary
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              const nextTitle = window.prompt("Rename task", task.title);
-                              if (!nextTitle) return;
-                              await renameMoneyTask(task.id, nextTitle.trim());
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                            }}
-                          >
-                            Rename
-                          </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!task.id) return;
-                              await deleteMoneyTask(task.id);
-                              const stored = await listMoneyTasks();
-                              setTasks(stored);
-                              setCompletedIds((prev) => {
-                                const next = new Set(prev);
-                                next.delete(task.id);
-                                return next;
-                              });
-                              setCalendarTick((prev) => prev + 1);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </details>
-                    </div>
+          <div className="mt-4 space-y-2">
+            {loans.length === 0 ? (
+              <div className="body-empty">No borrowed balances.</div>
+            ) : (
+              loans.map((loan) => (
+                <div key={loan.id} className="body-task-row">
+                  <div>
+                    <p className="text-sm">{loan.lender || "Unknown lender"}</p>
+                    <p className="text-xs text-white/50">
+                      Borrowed {loan.dateISO}
+                      {loan.dueISO ? ` • Due ${loan.dueISO}` : ""}
+                    </p>
                   </div>
-                ))
-              )}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setIsAddingTask(true)}
-            className="tp-button mt-4 inline-flex w-auto px-4"
-          >
-            Add Task
-          </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm tabular-nums">{formatMoney(loan.amount)}</span>
+                    <details className="body-menu">
+                      <summary>•••</summary>
+                      <div className="body-menu-panel">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openModal("repayment", {
+                              type: "repayment",
+                              loanId: loan.id,
+                              amount: String(loan.amount),
+                              dateISO: selectedDateISO,
+                            })
+                          }
+                        >
+                          Mark as repaid
+                        </button>
+                        <button type="button" onClick={() => handleEditLoan(loan)}>
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => handleDeleteLoan(loan)}>
+                          Delete
+                        </button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </section>
       </div>
 
-      {isAddingTask ? (
+      {modal ? (
         <div className="body-modal">
           <div className="body-modal-panel">
             <div className="tp-panel-head">
-              <p className="tp-kicker">New Money Task</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingTask(false);
-                  setNewTaskTitle("");
-                }}
-                className="tp-button tp-button-inline"
-              >
+              <p className="tp-kicker">
+                {modal === "edit-tx"
+                  ? "Edit transaction"
+                  : modal === "edit-loan"
+                    ? "Edit loan"
+                    : modal === "repayment"
+                      ? "Repayment"
+                      : modal === "borrowed"
+                        ? "Borrowed"
+                        : modal === "income"
+                          ? "Income"
+                          : "Expense"}
+              </p>
+              <button type="button" className="tp-button tp-button-inline" onClick={() => setModal(null)}>
                 Close
               </button>
             </div>
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="body-label">Title</label>
-                <input
-                  value={newTaskTitle}
-                  onChange={(event) => setNewTaskTitle(event.target.value)}
-                  className="body-input"
-                  placeholder="Task title"
-                />
+            {formError ? <p className="mt-3 text-xs text-red-400">{formError}</p> : null}
+
+            {modal === "edit-loan" && loanDraft ? (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="body-label">Lender</label>
+                  <input
+                    className="body-input"
+                    value={loanDraft.lender}
+                    onChange={(event) => setLoanDraft({ ...loanDraft, lender: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="body-label">Amount</label>
+                  <input
+                    className="body-input"
+                    type="number"
+                    value={loanDraft.amount}
+                    onChange={(event) => setLoanDraft({ ...loanDraft, amount: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="body-label">Borrowed date</label>
+                  <input
+                    className="body-input"
+                    type="date"
+                    value={loanDraft.dateISO}
+                    onChange={(event) => setLoanDraft({ ...loanDraft, dateISO: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="body-label">Due date</label>
+                  <input
+                    className="body-input"
+                    type="date"
+                    value={loanDraft.dueISO}
+                    onChange={(event) => setLoanDraft({ ...loanDraft, dueISO: event.target.value })}
+                  />
+                </div>
+                <div className="mt-5 flex gap-2">
+                  <button type="button" onClick={handleSaveLoan} className="tp-button w-auto px-4">
+                    Save
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="body-label">Priority</label>
-                <select
-                  value={newTaskPriority}
-                  onChange={(event) => setNewTaskPriority(event.target.value as "main" | "secondary")}
-                  className="body-select"
-                >
-                  <option value="main">Main (2 pts)</option>
-                  <option value="secondary">Secondary (1 pt)</option>
-                </select>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="body-label">Amount</label>
+                  <input
+                    className="body-input"
+                    type="number"
+                    value={txDraft.amount}
+                    onChange={(event) => setTxDraft({ ...txDraft, amount: event.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="body-label">Date</label>
+                  <input
+                    className="body-input"
+                    type="date"
+                    value={txDraft.dateISO}
+                    onChange={(event) => setTxDraft({ ...txDraft, dateISO: event.target.value })}
+                  />
+                </div>
+                {(modal === "expense" || (modal === "edit-tx" && txDraft.type === "expense")) && (
+                  <>
+                    <div>
+                      <label className="body-label">Category</label>
+                      <input
+                        className="body-input"
+                        value={txDraft.category}
+                        onChange={(event) => setTxDraft({ ...txDraft, category: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="body-label">Bucket</label>
+                      <select
+                        className="body-select"
+                        value={txDraft.bucket}
+                        onChange={(event) => setTxDraft({ ...txDraft, bucket: event.target.value as "need" | "want" })}
+                      >
+                        <option value="need">Need</option>
+                        <option value="want">Want</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {(modal === "borrowed" || (modal === "edit-tx" && txDraft.type === "borrowed")) && (
+                  <>
+                    <div>
+                      <label className="body-label">Lender</label>
+                      <input
+                        className="body-input"
+                        value={txDraft.lender}
+                        onChange={(event) => setTxDraft({ ...txDraft, lender: event.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="body-label">Due date</label>
+                      <input
+                        className="body-input"
+                        type="date"
+                        value={txDraft.dueISO}
+                        onChange={(event) => setTxDraft({ ...txDraft, dueISO: event.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="body-label">Note</label>
+                  <textarea
+                    className="body-input"
+                    rows={3}
+                    value={txDraft.note}
+                    onChange={(event) => setTxDraft({ ...txDraft, note: event.target.value })}
+                  />
+                </div>
+                <div className="mt-5 flex gap-2">
+                  <button type="button" onClick={handleSaveTx} className="tp-button w-auto px-4">
+                    Save
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="mt-5 flex gap-2">
-              <button type="button" onClick={handleAddTask} className="tp-button w-auto px-4">
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingTask(false);
-                  setNewTaskTitle("");
-                }}
-                className="tp-button w-auto px-4"
-              >
-                Cancel
-              </button>
-            </div>
+            )}
           </div>
         </div>
       ) : null}

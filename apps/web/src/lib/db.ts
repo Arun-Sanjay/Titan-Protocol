@@ -78,6 +78,26 @@ export type MoneyLog = {
   createdAt: number;
 };
 
+export type MoneyTx = {
+  id: string;
+  dateISO: string;
+  type: "expense" | "income" | "borrowed" | "repayment";
+  amount: number;
+  category: string | null;
+  bucket: "need" | "want" | null;
+  note: string | null;
+  loanId: string | null;
+};
+
+export type MoneyLoan = {
+  id: string;
+  lender: string | null;
+  amount: number;
+  dateISO: string;
+  dueISO: string | null;
+  status: "unpaid" | "paid";
+};
+
 export type GeneralMeta = {
   id: "general";
   startDate: string;
@@ -143,6 +163,8 @@ class TitanBodyDB extends Dexie {
   money_meta!: Table<MoneyMeta, "money">;
   money_tasks!: Table<MoneyTask, number>;
   money_logs!: Table<MoneyLog, number>;
+  money_tx!: Table<MoneyTx, string>;
+  money_loans!: Table<MoneyLoan, string>;
   general_meta!: Table<GeneralMeta, "general">;
   general_tasks!: Table<GeneralTask, number>;
   general_logs!: Table<GeneralLog, number>;
@@ -331,6 +353,30 @@ class TitanBodyDB extends Dexie {
       money_meta: "id",
       money_tasks: "++id, createdAt, priority",
       money_logs: "++id, dateKey",
+      money_tx: "id, dateISO, type, category, bucket, loanId",
+      money_loans: "id, dateISO, status",
+      general_meta: "id",
+      general_tasks: "++id, createdAt, priority",
+      general_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(11).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      mind_pomodoro_settings: "id, updatedAt",
+      mind_pomodoro_daily: "dateISO, updatedAt",
+      pomodoro_goal_settings: "id, updatedAt",
+      pomodoro_daily: "dateISO, updatedAt",
+      money_meta: "id",
+      money_tasks: "++id, createdAt, priority",
+      money_logs: "++id, dateKey",
+      money_tx: "id, dateISO, type, category, bucket, loanId",
+      money_loans: "id, dateISO, status",
       general_meta: "id",
       general_tasks: "++id, createdAt, priority",
       general_logs: "++id, dateKey",

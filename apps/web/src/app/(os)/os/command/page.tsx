@@ -46,19 +46,15 @@ function getRangeFromOffset(monthOffset: number) {
   return { start, end };
 }
 
+const ENGINE_LABELS: Record<UnifiedTask["engine"], string> = {
+  body: "BODY",
+  mind: "MIND",
+  money: "MONEY",
+  general: "GENERAL",
+};
+
 function engineLabel(engine: UnifiedTask["engine"]) {
-  switch (engine) {
-    case "body":
-      return "BODY";
-    case "mind":
-      return "MIND";
-    case "money":
-      return "MONEY";
-    case "general":
-      return "GENERAL";
-    default:
-      return engine.toUpperCase();
-  }
+  return ENGINE_LABELS[engine];
 }
 
 export default function CommandCenterPage() {
