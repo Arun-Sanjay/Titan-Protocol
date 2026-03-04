@@ -189,7 +189,9 @@ export async function getMindScoreMapForRange(dateISO: string) {
   const secondaryTasks = tasks.filter((task) => task.kind === "secondary");
 
   const map: Record<string, number> = {};
-  for (const [dateISO, set] of byDate.entries()) {
+  const dates = new Set<string>([...byDate.keys()]);
+  for (const dateISO of dates) {
+    const set = byDate.get(dateISO) ?? new Set<string>();
     const mainDone = mainTasks.filter((task) => set.has(task.id)).length;
     const secondaryDone = secondaryTasks.filter((task) => set.has(task.id)).length;
     const pointsTotal = mainTasks.length * 2 + secondaryTasks.length;

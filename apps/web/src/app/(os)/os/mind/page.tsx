@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
 import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
@@ -45,6 +47,7 @@ function addDays(date: Date, delta: number): Date {
 }
 
 export default function MindPage() {
+  const pathname = usePathname();
   const todayKey = React.useMemo(() => todayISO(), []);
   const [selectedDateKey, setSelectedDateKey] = React.useState<string>(() => todayKey);
   const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(parseDateKey(todayKey)));
@@ -112,6 +115,7 @@ export default function MindPage() {
       mounted = false;
     };
   }, [selectedDateKey, calendarTick]);
+
 
   React.useEffect(() => {
     let mounted = true;
@@ -283,6 +287,20 @@ export default function MindPage() {
             <span style={{ width: `${scorePercent}%` }} />
           </div>
         </section>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between">
+        <div className="tp-tabs">
+          <Link href="/os/mind" className={`tp-tab ${pathname === "/os/mind" ? "is-active" : ""}`}>
+            Mind Engine
+          </Link>
+          <Link
+            href="/os/mind/focus"
+            className={`tp-tab ${pathname?.startsWith("/os/mind/focus") ? "is-active" : ""}`}
+          >
+            Focus
+          </Link>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">

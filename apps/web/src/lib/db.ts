@@ -42,6 +42,22 @@ export type MindTaskCompletion = {
   completed_at: string | null;
 };
 
+export type MindPomodoroSettings = {
+  id: "settings";
+  focusMinutes: number;
+  breakMinutes: number;
+  longBreakMinutes: number;
+  longBreakAfter: number;
+  dailyTarget: number;
+  updatedAt: string;
+};
+
+export type MindPomodoroDaily = {
+  dateISO: string;
+  completed: number;
+  updatedAt: string;
+};
+
 export type MoneyMeta = {
   id: "money";
   startDate: string;
@@ -120,6 +136,10 @@ class TitanBodyDB extends Dexie {
   mind_meta!: Table<MindMeta, "mind">;
   mind_tasks!: Table<MindTask, string>;
   mind_task_completions!: Table<MindTaskCompletion, string>;
+  mind_pomodoro_settings!: Table<MindPomodoroSettings, "settings">;
+  mind_pomodoro_daily!: Table<MindPomodoroDaily, string>;
+  pomodoro_goal_settings!: Table<MindPomodoroSettings, "settings">;
+  pomodoro_daily!: Table<MindPomodoroDaily, string>;
   money_meta!: Table<MoneyMeta, "money">;
   money_tasks!: Table<MoneyTask, number>;
   money_logs!: Table<MoneyLog, number>;
@@ -266,6 +286,48 @@ class TitanBodyDB extends Dexie {
       mind_meta: "id",
       mind_tasks: "id, created_at, kind, is_active",
       mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      mind_pomodoro_settings: "id, updatedAt",
+      mind_pomodoro_daily: "dateISO, updatedAt",
+      money_meta: "id",
+      money_tasks: "++id, createdAt, priority",
+      money_logs: "++id, dateKey",
+      general_meta: "id",
+      general_tasks: "++id, createdAt, priority",
+      general_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(9).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      mind_pomodoro_settings: "id, updatedAt",
+      mind_pomodoro_daily: "dateISO, updatedAt",
+      pomodoro_goal_settings: "id, updatedAt",
+      pomodoro_daily: "dateISO, updatedAt",
+      money_meta: "id",
+      money_tasks: "++id, createdAt, priority",
+      money_logs: "++id, dateKey",
+      general_meta: "id",
+      general_tasks: "++id, createdAt, priority",
+      general_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(10).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      mind_pomodoro_settings: "id, updatedAt",
+      mind_pomodoro_daily: "dateISO, updatedAt",
+      pomodoro_goal_settings: "id, updatedAt",
+      pomodoro_daily: "dateISO, updatedAt",
       money_meta: "id",
       money_tasks: "++id, createdAt, priority",
       money_logs: "++id, dateKey",
