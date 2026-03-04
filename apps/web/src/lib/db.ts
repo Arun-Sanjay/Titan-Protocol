@@ -20,6 +20,28 @@ export type BodyLog = {
   createdAt: number;
 };
 
+export type MindMeta = {
+  id: "mind";
+  startDate: string;
+  createdAt: number;
+};
+
+export type MindTask = {
+  id: string;
+  created_at: string;
+  title: string;
+  kind: "main" | "secondary";
+  is_active: boolean;
+};
+
+export type MindTaskCompletion = {
+  id: string;
+  dateISO: string;
+  task_id: string;
+  completed: boolean;
+  completed_at: string | null;
+};
+
 export type NutritionProfile = {
   id: string;
   created_at: string;
@@ -55,6 +77,9 @@ class TitanBodyDB extends Dexie {
   body_meta!: Table<BodyMeta, "body">;
   body_tasks!: Table<BodyTask, number>;
   body_logs!: Table<BodyLog, number>;
+  mind_meta!: Table<MindMeta, "mind">;
+  mind_tasks!: Table<MindTask, string>;
+  mind_task_completions!: Table<MindTaskCompletion, string>;
   nutrition_profiles!: Table<NutritionProfile, string>;
   nutrition_meals!: Table<NutritionMeal, string>;
 
@@ -165,6 +190,26 @@ class TitanBodyDB extends Dexie {
       body_meta: "id",
       body_tasks: "++id, createdAt, priority",
       body_logs: "++id, dateKey",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(6).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
+      nutrition_profiles: "id, updated_at",
+      nutrition_meals: "id, dateISO, created_at",
+    });
+    this.version(7).stores({
+      body_meta: "id",
+      body_tasks: "++id, createdAt, priority",
+      body_logs: "++id, dateKey",
+      mind_meta: "id",
+      mind_tasks: "id, created_at, kind, is_active",
+      mind_task_completions: "id, dateISO, task_id, completed, [dateISO+task_id]",
       nutrition_profiles: "id, updated_at",
       nutrition_meals: "id, dateISO, created_at",
     });

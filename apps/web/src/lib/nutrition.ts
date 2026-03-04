@@ -1,5 +1,7 @@
 import { db, type NutritionMeal, type NutritionProfile } from "./db";
 import { uid } from "./id";
+import { assertDateISO, todayISO } from "./date";
+import { assertIDBKey } from "./idb_debug";
 
 const DEFAULT_PROFILE_ID = "default";
 
@@ -127,7 +129,10 @@ export async function addMeal(
 }
 
 export async function listMealsByDate(dateISO: string): Promise<NutritionMeal[]> {
-  return db.nutrition_meals.where("dateISO").equals(dateISO).toArray();
+  const candidate = dateISO ?? todayISO();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return [];
+  assertIDBKey("nutrition.meals.equals(dateISO)", candidate);
+  return db.nutrition_meals.where("dateISO").equals(candidate).toArray();
 }
 
 export async function deleteMeal(mealId: string): Promise<void> {

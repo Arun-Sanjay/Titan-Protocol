@@ -17,6 +17,7 @@ import {
 } from "../../../../lib/body";
 import type { BodyTask } from "../../../../lib/db";
 import { computeBodyDayScore } from "../../../../lib/bodyScore";
+import { assertDateISO, todayISO } from "../../../../lib/date";
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
 import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
 
@@ -48,8 +49,17 @@ function addDays(date: Date, delta: number): Date {
 
 export default function BodyClient({ initialDate }: { initialDate: string | null }) {
   const pathname = usePathname();
-  const today = React.useMemo(() => new Date(), []);
-  const initialDateKey = initialDate ?? toDateKey(today);
+  const todayKey = React.useMemo(() => todayISO(), []);
+  const initialDateKey = React.useMemo(() => {
+    if (initialDate) {
+      try {
+        return assertDateISO(initialDate);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return todayKey;
+  }, [initialDate, todayKey]);
 
   const [selectedDateKey, setSelectedDateKey] = React.useState<string>(initialDateKey);
   const [tasks, setTasks] = React.useState<BodyTask[]>([]);
@@ -63,12 +73,25 @@ export default function BodyClient({ initialDate }: { initialDate: string | null
   const [calendarTick, setCalendarTick] = React.useState(0);
 
   function handleDateChange(nextDateKey: string) {
-    setSelectedDateKey(nextDateKey);
+    if (!nextDateKey) return;
+    try {
+      setSelectedDateKey(assertDateISO(nextDateKey));
+    } catch (err) {
+      console.error(err);
+      setSelectedDateKey(todayISO());
+    }
   }
 
   React.useEffect(() => {
     if (!selectedDateKey) return;
-    const selectedDate = parseDateKey(selectedDateKey);
+    let safeDate: string;
+    try {
+      safeDate = assertDateISO(selectedDateKey);
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+    const selectedDate = parseDateKey(safeDate);
     if (
       selectedDate.getFullYear() !== visibleMonth.getFullYear() ||
       selectedDate.getMonth() !== visibleMonth.getMonth()
@@ -81,11 +104,18 @@ export default function BodyClient({ initialDate }: { initialDate: string | null
     let isMounted = true;
 
     async function hydrate() {
-      const meta = await ensureBodyMeta(selectedDateKey);
+      let safeDate: string;
+      try {
+        safeDate = assertDateISO(selectedDateKey);
+      } catch (err) {
+        console.error(err);
+        return;
+      }
+      const meta = await ensureBodyMeta(safeDate);
       setBodyStartDateKey(meta.startDate);
       const [taskDefs, log] = await Promise.all([
         listBodyTasks(),
-        getOrCreateBodyLog(selectedDateKey),
+        getOrCreateBodyLog(safeDate),
       ]);
 
       if (!isMounted) return;
