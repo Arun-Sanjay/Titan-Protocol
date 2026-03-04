@@ -45,29 +45,33 @@ function addDays(date: Date, delta: number): Date {
   return next;
 }
 
-export default function GeneralClient({ initialDate }: { initialDate: string | null }) {
+export default function GeneralClient() {
   const todayKey = React.useMemo(() => todayISO(), []);
-  const initialDateKey = React.useMemo(() => {
-    if (initialDate) {
-      try {
-        return assertDateISO(initialDate);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    return todayKey;
-  }, [initialDate, todayKey]);
-
-  const [selectedDateKey, setSelectedDateKey] = React.useState<string>(initialDateKey);
+  const [selectedDateKey, setSelectedDateKey] = React.useState<string>(() => todayKey);
   const [tasks, setTasks] = React.useState<GeneralTask[]>([]);
   const [completedIds, setCompletedIds] = React.useState<Set<number>>(new Set());
   const [generalStartDateKey, setGeneralStartDateKey] = React.useState<string>("");
-  const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(parseDateKey(initialDateKey)));
+  const [visibleMonth, setVisibleMonth] = React.useState<Date>(() => startOfMonth(parseDateKey(todayKey)));
   const [monthScoreMap, setMonthScoreMap] = React.useState<Record<string, number>>({});
   const [newTaskTitle, setNewTaskTitle] = React.useState<string>("");
   const [newTaskPriority, setNewTaskPriority] = React.useState<"main" | "secondary">("main");
   const [isAddingTask, setIsAddingTask] = React.useState<boolean>(false);
   const [calendarTick, setCalendarTick] = React.useState(0);
+
+  React.useEffect(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("general.selectedDateISO") : null;
+    if (!stored) return;
+    try {
+      setSelectedDateKey(assertDateISO(stored));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("general.selectedDateISO", selectedDateKey);
+  }, [selectedDateKey]);
 
   function handleDateChange(nextDateKey: string) {
     if (!nextDateKey) return;

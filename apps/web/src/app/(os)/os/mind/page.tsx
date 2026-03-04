@@ -62,6 +62,21 @@ export default function MindPage() {
   const [calendarTick, setCalendarTick] = React.useState(0);
   const [mindStartDateKey, setMindStartDateKey] = React.useState<string>("");
 
+  React.useEffect(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("mind.selectedDateISO") : null;
+    if (!stored) return;
+    try {
+      setSelectedDateKey(assertDateISO(stored));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("mind.selectedDateISO", selectedDateKey);
+  }, [selectedDateKey]);
+
   const handleSelectDate = React.useCallback((next: string) => {
     if (!next) return;
     try {

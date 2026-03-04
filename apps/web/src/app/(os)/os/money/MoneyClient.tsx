@@ -169,20 +169,9 @@ const EMPTY_DRAFT: TxDraft = {
   loanId: null,
 };
 
-export default function MoneyClient({ initialDate }: { initialDate: string | null }) {
+export default function MoneyClient() {
   const todayKey = React.useMemo(() => todayISO(), []);
-  const initialDateKey = React.useMemo(() => {
-    if (initialDate) {
-      try {
-        return assertDateISO(initialDate);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    return todayKey;
-  }, [initialDate, todayKey]);
-
-  const [selectedDateISO, setSelectedDateISO] = React.useState<string>(initialDateKey);
+  const [selectedDateISO, setSelectedDateISO] = React.useState<string>(() => todayKey);
   const [monthOffset, setMonthOffset] = React.useState(0);
   const [startDateISO, setStartDateISO] = React.useState<string>(todayKey);
   const [currency, setCurrency] = React.useState<MoneyCurrency>("USD");
@@ -200,13 +189,28 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
   const [loans, setLoans] = React.useState<MoneyLoan[]>([]);
   const [scoreByDate, setScoreByDate] = React.useState<Record<string, number>>({});
   const [modal, setModal] = React.useState<ModalType | null>(null);
-  const [txDraft, setTxDraft] = React.useState<TxDraft>(() => ({ ...EMPTY_DRAFT, dateISO: initialDateKey }));
+  const [txDraft, setTxDraft] = React.useState<TxDraft>(() => ({ ...EMPTY_DRAFT, dateISO: todayKey }));
   const [loanDraft, setLoanDraft] = React.useState<LoanDraft | null>(null);
   const [editingTx, setEditingTx] = React.useState<MoneyTx | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [dataTick, setDataTick] = React.useState(0);
 
   const monthKey = React.useMemo(() => selectedDateISO, [selectedDateISO]);
+
+  React.useEffect(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("money.selectedDateISO") : null;
+    if (!stored) return;
+    try {
+      setSelectedDateISO(assertDateISO(stored));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("money.selectedDateISO", selectedDateISO);
+  }, [selectedDateISO]);
 
   React.useEffect(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("money.currency") : null;

@@ -67,6 +67,21 @@ export default function CommandCenterPage() {
   const [startDateISO, setStartDateISO] = React.useState<string>(todayKey);
 
   React.useEffect(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("command.selectedDateISO") : null;
+    if (!stored) return;
+    try {
+      setSelectedDateISO(assertDateISO(stored));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("command.selectedDateISO", selectedDateISO);
+  }, [selectedDateISO]);
+
+  React.useEffect(() => {
     let mounted = true;
     async function hydrate() {
       const allTasks = await listAllTasks();

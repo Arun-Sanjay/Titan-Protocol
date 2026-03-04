@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "build:tauri": "TAURI=1 next build --webpack && TAURI=1 next export",
+    "build:tauri": "TAURI=1 next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",

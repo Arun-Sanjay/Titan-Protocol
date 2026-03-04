@@ -85,6 +85,7 @@ function heatColor(score: number, isFuture: boolean) {
 export default function AnalyticsPage() {
   const todayKey = React.useMemo(() => todayISO(), []);
   const [rangeDays, setRangeDays] = React.useState(30);
+  const [mounted, setMounted] = React.useState(false);
 
   const [tasksByEngine, setTasksByEngine] = React.useState<Record<EngineId, EngineTask[]>>({
     body: [],
@@ -107,6 +108,10 @@ export default function AnalyticsPage() {
   const rangeEnd = React.useMemo(() => addDays(todayKey, 1), [todayKey]);
   const heatmapStart = React.useMemo(() => addDays(todayKey, -83), [todayKey]);
   const unionStart = rangeStart < heatmapStart ? rangeStart : heatmapStart;
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     let mounted = true;
@@ -298,31 +303,39 @@ export default function AnalyticsPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="tp-panel p-5 sm:p-6">
           <p className="tp-kicker">Titan Score Trend</p>
-          <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
-                <Line type="monotone" dataKey="score" stroke="#e6e6e6" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="mt-4 h-56 min-h-[224px] w-full min-w-0">
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <Line type="monotone" dataKey="score" stroke="#e6e6e6" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full rounded-md border border-white/5 bg-white/[0.02]" />
+            )}
           </div>
         </section>
 
         <section className="tp-panel p-5 sm:p-6">
           <p className="tp-kicker">Engine Performance</p>
-          <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={enginePerformance}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="engine" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
-                <Bar dataKey="score" fill="#e6e6e6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="mt-4 h-56 min-h-[224px] w-full min-w-0">
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={enginePerformance}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="engine" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <Bar dataKey="score" fill="#e6e6e6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full rounded-md border border-white/5 bg-white/[0.02]" />
+            )}
           </div>
         </section>
       </div>
@@ -348,16 +361,20 @@ export default function AnalyticsPage() {
 
         <section className="tp-panel p-5 sm:p-6">
           <p className="tp-kicker">Weekly Discipline</p>
-          <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData}>
-                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="week" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
-                <Bar dataKey="avg" fill="#e6e6e6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="mt-4 h-56 min-h-[224px] w-full min-w-0">
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyData}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="week" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 10 }} />
+                  <Tooltip contentStyle={{ background: "#0b0b0d", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <Bar dataKey="avg" fill="#e6e6e6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full rounded-md border border-white/5 bg-white/[0.02]" />
+            )}
           </div>
         </section>
       </div>
