@@ -9,6 +9,7 @@ import { playClick } from "../../../lib/sound";
 
 const NAV_ITEMS = [
   { href: "/os", label: "Dashboard", icon: "⌂" },
+  { href: "/os/command", label: "Command Center", icon: "▣" },
   { href: "/os/body", label: "Body", icon: "◈" },
   { href: "/os/mind", label: "Mind", icon: "◎" },
   { href: "/os/money", label: "Money", icon: "◍" },
