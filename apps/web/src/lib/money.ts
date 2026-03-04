@@ -105,7 +105,7 @@ export async function addRepayment(input: RepaymentInput): Promise<MoneyTx> {
     dateISO: safeDate,
     type: "repayment",
     amount: input.amount,
-    category: null,
+    category: "Debt Repayment",
     bucket: null,
     note: input.note ?? null,
     loanId: input.loanId,

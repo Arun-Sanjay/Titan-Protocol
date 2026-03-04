@@ -5,6 +5,7 @@ import * as React from "react";
 import type { MoneyLoan, MoneyTx } from "../../../../lib/db";
 import { ThreeMonthCalendar } from "../../../../components/calendar/ThreeMonthCalendar";
 import { assertDateISO, monthBounds, todayISO } from "../../../../lib/date";
+import { formatMoney, type MoneyCurrency } from "../../../../lib/money_format";
 import {
   addBorrowed,
   addExpense,
@@ -25,12 +26,41 @@ import {
 
 type ModalType = "expense" | "income" | "borrowed" | "repayment" | "edit-tx" | "edit-loan";
 
+type CategoryBucket = "need" | "want";
+
+const NEED_CATEGORIES = [
+  "Food",
+  "Transport",
+  "Rent",
+  "Groceries",
+  "Utilities",
+  "Health",
+  "Education",
+  "Bills",
+  "Family",
+  "Other Need",
+];
+
+const WANT_CATEGORIES = [
+  "Entertainment",
+  "Dining Out",
+  "Shopping",
+  "Travel",
+  "Dating/Social",
+  "Gaming",
+  "Luxury/Style",
+  "Gadgets",
+  "Other Want",
+];
+
+const INCOME_CATEGORIES = ["Salary", "Borrowed", "Other Income"];
+
 type TxDraft = {
   type: "expense" | "income" | "borrowed" | "repayment";
   amount: string;
   dateISO: string;
   category: string;
-  bucket: "need" | "want";
+  bucket: CategoryBucket;
   note: string;
   lender: string;
   dueISO: string;
@@ -64,8 +94,25 @@ function addMonths(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+function bucketForCategory(category: string): CategoryBucket | null {
+  if (NEED_CATEGORIES.includes(category)) return "need";
+  if (WANT_CATEGORIES.includes(category)) return "want";
+  return null;
+}
+
+function normalizeExpenseCategory(category: string | null | undefined, bucket: CategoryBucket | null | undefined) {
+  const safeCategory = category ?? "";
+  if (NEED_CATEGORIES.includes(safeCategory) || WANT_CATEGORIES.includes(safeCategory)) {
+    return { category: safeCategory, bucket: bucketForCategory(safeCategory) ?? bucket ?? "need" };
+  }
+  if (bucket === "want") return { category: "Other Want", bucket: "want" as const };
+  return { category: "Other Need", bucket: "need" as const };
+}
+
+function normalizeIncomeCategory(category: string | null | undefined) {
+  const safeCategory = category ?? "";
+  if (INCOME_CATEGORIES.includes(safeCategory)) return safeCategory;
+  return "Other Income";
 }
 
 function getRangeFromOffset(monthOffset: number) {
@@ -80,7 +127,7 @@ function txLabel(tx: MoneyTx) {
     case "expense":
       return tx.category ? `Expense • ${tx.category}` : "Expense";
     case "income":
-      return "Income";
+      return tx.category ? `Income • ${tx.category}` : "Income";
     case "borrowed":
       return "Borrowed";
     case "repayment":
@@ -114,7 +161,7 @@ const EMPTY_DRAFT: TxDraft = {
   type: "expense",
   amount: "",
   dateISO: todayISO(),
-  category: "",
+  category: "Food",
   bucket: "need",
   note: "",
   lender: "",
@@ -138,6 +185,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
   const [selectedDateISO, setSelectedDateISO] = React.useState<string>(initialDateKey);
   const [monthOffset, setMonthOffset] = React.useState(0);
   const [startDateISO, setStartDateISO] = React.useState<string>(todayKey);
+  const [currency, setCurrency] = React.useState<MoneyCurrency>("USD");
   const [dayTx, setDayTx] = React.useState<MoneyTx[]>([]);
   const [monthTotals, setMonthTotals] = React.useState({
     spent: 0,
@@ -159,6 +207,18 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
   const [dataTick, setDataTick] = React.useState(0);
 
   const monthKey = React.useMemo(() => selectedDateISO, [selectedDateISO]);
+
+  React.useEffect(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("money.currency") : null;
+    if (stored && (stored === "USD" || stored === "EUR" || stored === "GBP" || stored === "INR")) {
+      setCurrency(stored);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("money.currency", currency);
+  }, [currency]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -237,12 +297,24 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
     setFormError(null);
     setEditingTx(null);
     setLoanDraft(null);
-    setTxDraft({
+    const nextDraft: TxDraft = {
       ...EMPTY_DRAFT,
       dateISO: selectedDateISO,
       type,
       ...seed,
-    });
+    };
+    if (type === "income") {
+      nextDraft.category = INCOME_CATEGORIES[0];
+    }
+    if (type === "expense") {
+      const normalized = normalizeExpenseCategory(nextDraft.category, nextDraft.bucket);
+      nextDraft.category = normalized.category;
+      nextDraft.bucket = normalized.bucket;
+    }
+    if (type === "repayment") {
+      nextDraft.category = "Debt Repayment";
+    }
+    setTxDraft(nextDraft);
     setModal(type);
   }
 
@@ -276,6 +348,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
           await updateTx(editingTx.id, {
             amount,
             dateISO: safeDate,
+            category: txDraft.category || null,
             note: txDraft.note || null,
           });
         } else if (editingTx.type === "borrowed") {
@@ -296,6 +369,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
           await updateTx(editingTx.id, {
             amount,
             dateISO: safeDate,
+            category: "Debt Repayment",
             note: txDraft.note || null,
           });
         }
@@ -311,6 +385,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
         await addIncome({
           dateISO: safeDate,
           amount,
+          category: txDraft.category || null,
           note: txDraft.note || null,
         });
       } else if (txDraft.type === "borrowed") {
@@ -352,12 +427,21 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
   function handleEditTx(tx: MoneyTx) {
     setEditingTx(tx);
     const loan = tx.loanId ? loans.find((item) => item.id === tx.loanId) : null;
+    const expenseDefaults = normalizeExpenseCategory(tx.category, tx.bucket as CategoryBucket | null);
+    const incomeCategory = normalizeIncomeCategory(tx.category);
     setTxDraft({
       type: tx.type,
       amount: String(tx.amount),
       dateISO: tx.dateISO,
-      category: tx.category ?? "",
-      bucket: (tx.bucket as "need" | "want") ?? "need",
+      category:
+        tx.type === "expense"
+          ? expenseDefaults.category
+          : tx.type === "income"
+            ? incomeCategory
+            : tx.type === "repayment"
+              ? "Debt Repayment"
+              : tx.category ?? "",
+      bucket: tx.type === "expense" ? expenseDefaults.bucket : "need",
       note: tx.note ?? "",
       lender: loan?.lender ?? "",
       dueISO: loan?.dueISO ?? "",
@@ -429,6 +513,15 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
   const wantsTotal = monthTotals.wants;
   const needsPct = needsTotal + wantsTotal === 0 ? 0 : Math.round((needsTotal / (needsTotal + wantsTotal)) * 100);
 
+  function handleExpenseCategoryChange(value: string) {
+    const bucket = bucketForCategory(value);
+    setTxDraft((prev) => ({
+      ...prev,
+      category: value,
+      bucket: bucket ?? prev.bucket,
+    }));
+  }
+
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -444,6 +537,17 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
             value={selectedDateISO}
             onChange={(event) => setSelectedDateISO(event.target.value)}
           />
+          <label className="body-label">Currency</label>
+          <select
+            className="body-select w-[110px]"
+            value={currency}
+            onChange={(event) => setCurrency(event.target.value as MoneyCurrency)}
+          >
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="INR">INR (₹)</option>
+          </select>
           <button type="button" className="tp-button tp-button-inline" onClick={() => openModal("expense")}>
             Add Expense
           </button>
@@ -473,17 +577,17 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
             <p className="tp-muted mt-2 text-xs">{selectedDateISO}</p>
             <div className="mt-4 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="tp-muted">Spent</span>
-                <span>{formatMoney(dayTotals.spent)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="tp-muted">Income</span>
-                <span>{formatMoney(dayTotals.income)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="tp-muted">Net</span>
-                <span>{formatMoney(dayTotals.net)}</span>
-              </div>
+                    <span className="tp-muted">Spent</span>
+                    <span>{formatMoney(dayTotals.spent, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="tp-muted">Income</span>
+                    <span>{formatMoney(dayTotals.income, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="tp-muted">Net</span>
+                    <span>{formatMoney(dayTotals.net, currency)}</span>
+                  </div>
             </div>
           </section>
 
@@ -492,23 +596,23 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
             <p className="tp-muted mt-2 text-xs">{start}</p>
             <div className="mt-4 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="tp-muted">Spent</span>
-                <span>{formatMoney(monthTotals.spent)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="tp-muted">Income</span>
-                <span>{formatMoney(monthTotals.income)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="tp-muted">Net</span>
-                <span>{formatMoney(monthTotals.net)}</span>
-              </div>
+                    <span className="tp-muted">Spent</span>
+                    <span>{formatMoney(monthTotals.spent, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="tp-muted">Income</span>
+                    <span>{formatMoney(monthTotals.income, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="tp-muted">Net</span>
+                    <span>{formatMoney(monthTotals.net, currency)}</span>
+                  </div>
             </div>
           </section>
 
           <section className="tp-panel p-4">
             <p className="tp-kicker">Outstanding Borrowed</p>
-            <p className="mt-4 text-2xl font-semibold">{formatMoney(outstandingBorrowed)}</p>
+            <p className="mt-4 text-2xl font-semibold">{formatMoney(outstandingBorrowed, currency)}</p>
             <p className="tp-muted mt-2 text-xs">Unpaid loans</p>
           </section>
         </div>
@@ -525,8 +629,8 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
                 />
               </div>
               <div className="mt-2 flex justify-between text-xs text-white/60">
-                <span>Needs: {formatMoney(needsTotal)}</span>
-                <span>Wants: {formatMoney(wantsTotal)}</span>
+                <span>Needs: {formatMoney(needsTotal, currency)}</span>
+                <span>Wants: {formatMoney(wantsTotal, currency)}</span>
               </div>
             </div>
 
@@ -539,7 +643,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
                   topCategories.map(([category, amount]) => (
                     <div key={category} className="flex items-center justify-between">
                       <span className="truncate">{category}</span>
-                      <span className="tabular-nums">{formatMoney(amount)}</span>
+                      <span className="tabular-nums">{formatMoney(amount, currency)}</span>
                     </div>
                   ))
                 )}
@@ -572,7 +676,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm tabular-nums ${txTone(tx)}`}>{formatMoney(tx.amount)}</span>
+                          <span className={`text-sm tabular-nums ${txTone(tx)}`}>{formatMoney(tx.amount, currency)}</span>
                           <details className="body-menu">
                             <summary>•••</summary>
                             <div className="body-menu-panel">
@@ -615,7 +719,7 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm tabular-nums">{formatMoney(loan.amount)}</span>
+                    <span className="text-sm tabular-nums">{formatMoney(loan.amount, currency)}</span>
                     <details className="body-menu">
                       <summary>•••</summary>
                       <div className="body-menu-panel">
@@ -738,24 +842,60 @@ export default function MoneyClient({ initialDate }: { initialDate: string | nul
                   <>
                     <div>
                       <label className="body-label">Category</label>
-                      <input
-                        className="body-input"
-                        value={txDraft.category}
-                        onChange={(event) => setTxDraft({ ...txDraft, category: event.target.value })}
-                      />
+                      <select className="body-select" value={txDraft.category} onChange={(event) => handleExpenseCategoryChange(event.target.value)}>
+                        <optgroup label="Needs">
+                          {NEED_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Wants">
+                          {WANT_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
                     </div>
                     <div>
                       <label className="body-label">Bucket</label>
                       <select
                         className="body-select"
                         value={txDraft.bucket}
-                        onChange={(event) => setTxDraft({ ...txDraft, bucket: event.target.value as "need" | "want" })}
+                        onChange={(event) => setTxDraft({ ...txDraft, bucket: event.target.value as CategoryBucket })}
+                        disabled
                       >
                         <option value="need">Need</option>
                         <option value="want">Want</option>
                       </select>
                     </div>
                   </>
+                )}
+
+                {(modal === "income" || (modal === "edit-tx" && txDraft.type === "income")) && (
+                  <div>
+                    <label className="body-label">Category</label>
+                    <select
+                      className="body-select"
+                      value={txDraft.category}
+                      onChange={(event) => setTxDraft({ ...txDraft, category: event.target.value })}
+                    >
+                      {INCOME_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {(modal === "repayment" || (modal === "edit-tx" && txDraft.type === "repayment")) && (
+                  <div>
+                    <label className="body-label">Category</label>
+                    <input className="body-input" value="Debt Repayment" disabled />
+                  </div>
                 )}
 
                 {(modal === "borrowed" || (modal === "edit-tx" && txDraft.type === "borrowed")) && (
