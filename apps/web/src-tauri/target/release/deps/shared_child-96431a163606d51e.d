@@ -1,0 +1,10 @@
+/Users/arunsanjay/Titan /titan-protocol/apps/web/src-tauri/target/release/deps/shared_child-96431a163606d51e.d: /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/lib.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/mod.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/unix.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/unix.rs
+
+/Users/arunsanjay/Titan /titan-protocol/apps/web/src-tauri/target/release/deps/libshared_child-96431a163606d51e.rlib: /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/lib.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/mod.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/unix.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/unix.rs
+
+/Users/arunsanjay/Titan /titan-protocol/apps/web/src-tauri/target/release/deps/libshared_child-96431a163606d51e.rmeta: /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/lib.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/mod.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/unix.rs /Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/unix.rs
+
+/Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/lib.rs:
+/Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/mod.rs:
+/Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/sys/unix.rs:
+/Users/arunsanjay/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/shared_child-1.1.1/src/unix.rs:
