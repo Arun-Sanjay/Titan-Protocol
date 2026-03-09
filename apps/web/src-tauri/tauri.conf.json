@@ -21,7 +21,7 @@
       "active": true,
       "identifier": "com.titan.protocol",
       "targets": ["app", "dmg"],
-      "icon": ["icons/icon.png"],
+      "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
       "dmg": {
         "background": "dmg-background.png",
         "windowSize": {
