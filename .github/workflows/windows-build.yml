@@ -34,6 +34,10 @@ jobs:
         working-directory: apps/web
         run: npm ci
 
+      - name: Generate Tauri icons (includes .ico for Windows)
+        working-directory: apps/web
+        run: npx tauri icon src-tauri/icons/icon.png
+
       - name: Create temporary Windows Tauri CI config
         shell: pwsh
         run: |
