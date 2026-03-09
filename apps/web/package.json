@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "build:tauri": "TAURI=1 next build --webpack",
+    "build:tauri": "cross-env TAURI=1 next build --webpack",
     "start": "next start",
     "lint": "eslint .",
     "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
@@ -32,6 +32,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.24",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.5.6",
