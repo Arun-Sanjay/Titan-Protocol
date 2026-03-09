@@ -1,120 +1,95 @@
-# TITAN PROTOCOL
+# Titan Protocol
 
-Titan Protocol is a full-stack life gamification system that turns real-world habits, goals, and discipline into XP, dynamic levels, and fixed milestone-based ranks.
+Titan Protocol is a local-first personal performance operating system built as a Next.js app with an optional Tauri desktop wrapper.
 
-Built with:
-- FastAPI (Backend API)
-- Supabase PostgreSQL (Database)
-- Next.js 16 + TypeScript (Frontend)
-- Tailwind CSS (Neon / Cyber UI)
+It is organized around four engines:
+- Body
+- Mind
+- Money
+- General
 
----
+Each engine tracks daily tasks, completion, consistency, and score. The app also includes analytics, command center planning, habits, goals, journal, and focused utility tools.
 
-## 🚀 Vision
+## Current Status
 
-Titan Protocol transforms life into a structured progression engine:
+This repository currently ships an actively used **web app + desktop app** under `apps/web`.
 
-- Earn XP for completing quests
-- Level up dynamically
-- Unlock fixed ranks at milestone levels
-- Track habits, workouts, deep work sessions, and long-term goals
-- Expand into gym logging, meditation tracking, and AI coaching
+The previous backend/Supabase-oriented setup described in older docs is not the active runtime path for the current codebase.
 
-This is not a to-do app.
-
-This is a life operating system.
-
----
-
-## 🏗 Architecture
-
-### Monorepo structure
+## Repository Structure
 
 ```text
 titan-protocol/
   apps/
-    api/        # FastAPI backend
-    web/        # Next.js frontend
-  supabase/     # SQL/schema notes (optional)
-  docs/         # Documentation (optional)
-  infra/        # Deployment/infra (optional)
+    web/                  # Next.js app + Tauri desktop wrapper
+      src-tauri/          # Tauri (Rust) desktop config and runtime
+  packages/
+    shared/               # Shared TS types/constants
+  docs/
+    archive/              # Archived notes from older iterations
+  infra/                  # Placeholder infra files (currently minimal)
 ```
 
----
+## Key Product Areas
 
-## ⚙ Backend (FastAPI)
+- Core
+  - Dashboard
+  - Command Center
+  - Analytics
+- Engines
+  - Body
+  - Mind
+  - Money
+  - General
+- Track
+  - Habits
+  - Journal
+  - Goals
+- Tools
+  - Focus Timer
+  - Workouts
+  - Sleep Tracker
+  - Weight Tracker
+  - Nutrition
+- Settings
+  - Local JSON export/import backup
+  - Onboarding replay
 
-Location:
-apps/api
+## Tech Stack
 
-### Features
+- Frontend: Next.js 16, React 19, TypeScript
+- State/Data: Dexie (IndexedDB, local-first)
+- UI: Tailwind CSS + custom HUD styles
+- Charts: Recharts
+- Motion: Framer Motion
+- Desktop: Tauri 1.5 (Rust)
+- PWA: `next-pwa`
 
-- XP Ledger System
-- Dynamic Level Curve
-- Fixed Rank Milestones
-- Quest System
-  - Main
-  - Side
-  - Daily
-- Quest Completion → Automatic XP Award
-- PostgreSQL via asyncpg
-- Supabase-hosted database
+## Data Model (Current)
 
-### Run Backend Locally
+Data is stored locally in IndexedDB via Dexie.
 
-```bash
-cd apps/api
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+Major local tables include:
+- Engine tasks/logs (Body, Mind, Money, General)
+- Habits + habit logs
+- Goals + goal tasks
+- Journal entries
+- Focus sessions
+- Money transactions, loans, budgets
+- Nutrition profile + meals
+- Workout templates/sessions/sets
+- Sleep entries
+- Achievements and notifications
 
-API Docs:
-http://127.0.0.1:8000/docs
+## Getting Started
 
----
+### Prerequisites
 
-## 🗄 Database (Supabase)
+- Node.js 20+
+- npm
+- For desktop app builds: Rust + Cargo + Tauri system prerequisites
 
-Database: PostgreSQL (Supabase)
-
-Required Environment Variables (.env):
-
-SUPABASE_URL=your_project_url  
-SUPABASE_ANON_KEY=your_publishable_key  
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.xxxxx.supabase.co:5432/postgres  
-
-Database includes:
-
-- xp_ledger
-- ranks
-- quests
-- enum quest_type (main, side, daily)
-
----
-
-## 🎨 Frontend (Next.js 16)
-
-Location:
-apps/web
-
-### Tech
-
-- App Router
-- TypeScript
-- Tailwind CSS
-- Neon / HUD-inspired UI
-
-### Features
-
-- Live XP Progress Bar
-- Rank + Level Display
-- Quest Board (Main / Side / Daily)
-- Create Quest Modal
-- Complete Quest → Instant XP Update
-
-### Run Frontend
+### Run Web App (Development)
 
 ```bash
 cd apps/web
@@ -122,83 +97,50 @@ npm install
 npm run dev
 ```
 
-Optional AI meal estimation setup (`apps/web/.env.local`):
+App URL:
+- `http://localhost:3000`
+
+### Run Desktop App (Tauri Development)
 
 ```bash
-OPENAI_API_KEY=your_openai_api_key
+cd apps/web
+npm install
+npm run tauri:dev
 ```
 
-Frontend:
-http://localhost:3000
-
----
-
-## 📈 Progression System
-
-Leveling:
-- Dynamic XP curve
-- XP required increases per level
-
-Ranks:
-- Fixed milestone unlocks
-- Example:
-  - Initiate
-  - Operator
-  - Specialist
-  - Vanguard
-  - Sentinel
-  - Titan
-
-XP is calculated from ledger entries, not stored statically.
-
----
-
-## 🔮 Roadmap
-
-Upcoming systems:
-
-- Daily reset + streak tracking
-- Gym workout logging
-- Pomodoro focus tracker
-- Meditation tracker
-- AI productivity coach
-- Mobile deployment
-- User authentication (Supabase Auth)
-
----
-
-## 🛠 Development Workflow
-
-Push to GitHub:
+### Build Web App
 
 ```bash
-git add .
-git commit -m "Your message"
-git push
+cd apps/web
+npm run build
+npm run start
 ```
 
-Never commit:
-- .env
-- .venv
-- node_modules
-- .next
+### Build Desktop App Bundles
 
----
+```bash
+cd apps/web
+npm run tauri:build
+```
 
-## 🧠 Philosophy
+macOS DMG output is generated under:
+- `apps/web/src-tauri/target/release/bundle/dmg/`
 
-Titan Protocol is built around structured growth.
+## Useful Scripts (`apps/web/package.json`)
 
-Discipline becomes measurable.
-Consistency becomes visible.
-Progress becomes undeniable.
+- `npm run dev` - Next.js development server
+- `npm run build` - production web build
+- `npm run build:tauri` - static export for Tauri bundle flow
+- `npm run start` - serve production web build
+- `npm run lint` - ESLint
+- `npm run tauri:dev` - run desktop app in dev mode
+- `npm run tauri:build` - build desktop bundles
 
-You don't track life.
+## Notes
 
-You level it.
+- Auth pages and API route stubs in `apps/web/src/app` are currently disabled (`*.disabled`).
+- `.github/workflows` and `infra/docker` currently contain placeholders.
 
----
+## License
 
-## 📜 License
-
-Private project (for now).
+See [LICENSE](LICENSE).
