@@ -1,0 +1,28 @@
+.tp-os {
+  background: #0b0b0b;
+  color: rgba(245, 248, 255, 0.92);
+}
+
+html[data-theme="hud"] body.tp-os::before,
+html[data-theme="hud"] body.tp-os::after {
+  content: none !important;
+}
+
+.osCanvas {
+  min-height: 100vh;
+  padding: 0;
+  background: radial-gradient(1200px 800px at 50% 0%, rgba(255, 255, 255, 0.04), transparent 60%), #0b0b0b;
+}
+
+.osStage {
+  position: relative;
+  min-height: 100vh;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
+}
+
+.osStage::before {
+  content: none;
+}

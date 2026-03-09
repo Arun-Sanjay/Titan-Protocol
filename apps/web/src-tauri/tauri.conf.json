@@ -1,0 +1,57 @@
+{
+  "build": {
+    "beforeDevCommand": "PORT=3000 npm run dev",
+    "beforeBuildCommand": "npm run build:tauri",
+    "devPath": "http://localhost:3000",
+    "distDir": "../out"
+  },
+  "package": {
+    "productName": "Titan Protocol",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "window": { "all": true },
+      "notification": { "all": true },
+      "dialog": { "all": true },
+      "shell": { "open": true }
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "com.titan.protocol",
+      "targets": ["app", "dmg"],
+      "icon": ["icons/icon.png"],
+      "dmg": {
+        "background": "dmg-background.png",
+        "windowSize": {
+          "width": 800,
+          "height": 600
+        },
+        "appPosition": {
+          "x": 200,
+          "y": 300
+        },
+        "applicationFolderPosition": {
+          "x": 600,
+          "y": 300
+        }
+      }
+    },
+    "windows": [
+      {
+        "title": "Titan Protocol",
+        "width": 1440,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    }
+  }
+}
