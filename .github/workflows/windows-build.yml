@@ -34,6 +34,9 @@ jobs:
         working-directory: apps/web
         run: npm ci
 
+      - name: Install NSIS
+        run: choco install nsis -y
+
       - name: Generate Tauri icons (includes .ico for Windows)
         working-directory: apps/web
         run: npx tauri icon src-tauri/icons/icon.png
@@ -60,10 +63,20 @@ jobs:
           TAURI: "1"
         run: npx tauri build --config src-tauri/tauri.windows.ci.conf.json --bundles nsis
 
+      - name: List Windows bundle output
+        shell: pwsh
+        run: |
+          if (Test-Path "apps/web/src-tauri/target/release/bundle") {
+            Get-ChildItem -Path "apps/web/src-tauri/target/release/bundle" -Recurse -File | ForEach-Object { $_.FullName }
+          } else {
+            Write-Host "Bundle directory not found."
+          }
+
       - name: Upload Windows bundle artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-windows-nsis
+          name: tauri-windows-bundles
           path: |
-            apps/web/src-tauri/target/release/bundle/nsis/*
+            apps/web/src-tauri/target/release/bundle/nsis/**/*
+            apps/web/src-tauri/target/release/bundle/msi/**/*
           if-no-files-found: error
