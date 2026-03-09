@@ -75,8 +75,8 @@ jobs:
       - name: Upload Windows bundle artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tauri-windows-bundles
+          name: tauri-windows-nsis
           path: |
-            apps/web/src-tauri/target/release/bundle/nsis/**/*
-            apps/web/src-tauri/target/release/bundle/msi/**/*
+            apps/web/src-tauri/target/release/bundle/**/*
+            apps/web/src-tauri/target/release/*.exe
           if-no-files-found: error
