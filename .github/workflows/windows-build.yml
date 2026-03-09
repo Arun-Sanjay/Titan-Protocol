@@ -1,0 +1,65 @@
+name: Windows Tauri Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/web/src-tauri -> target
+
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Create temporary Windows Tauri CI config
+        shell: pwsh
+        run: |
+          $config = @{
+            build = @{
+              beforeBuildCommand = "npx next build --webpack"
+            }
+            tauri = @{
+              bundle = @{
+                targets = @("nsis")
+              }
+            }
+          } | ConvertTo-Json -Depth 8
+
+          $config | Out-File -FilePath "apps/web/src-tauri/tauri.windows.ci.conf.json" -Encoding utf8
+
+      - name: Build Tauri app (Windows)
+        working-directory: apps/web
+        env:
+          TAURI: "1"
+        run: npx tauri build --config src-tauri/tauri.windows.ci.conf.json --bundles nsis
+
+      - name: Upload Windows bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-windows-nsis
+          path: |
+            apps/web/src-tauri/target/release/bundle/nsis/*
+          if-no-files-found: error
