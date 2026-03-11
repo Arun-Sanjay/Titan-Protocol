@@ -9,7 +9,6 @@ import {
   deleteGeneralTask,
   ensureGeneralMeta,
   getGeneralScoreMapForRange,
-  renameGeneralTask,
   toggleGeneralTaskForDate,
   updateGeneralTaskPriority,
 } from "../../../../lib/general";
@@ -262,9 +261,6 @@ export default function GeneralClient() {
                           <button type="button" onClick={async () => { if (!task.id) return; await updateGeneralTaskPriority(task.id, "main"); }}>
                             Move to Main
                           </button>
-                          <button type="button" onClick={async () => { if (!task.id) return; const t = window.prompt("Rename task", task.title); if (!t) return; await renameGeneralTask(task.id, t.trim()); }}>
-                            Rename
-                          </button>
                           <button type="button" onClick={async () => { if (!task.id) return; await deleteGeneralTask(task.id); }}>
                             Delete
                           </button>
@@ -318,9 +314,6 @@ export default function GeneralClient() {
                         <div className="body-menu-panel">
                           <button type="button" onClick={async () => { if (!task.id) return; await updateGeneralTaskPriority(task.id, "secondary"); }}>
                             Move to Secondary
-                          </button>
-                          <button type="button" onClick={async () => { if (!task.id) return; const t = window.prompt("Rename task", task.title); if (!t) return; await renameGeneralTask(task.id, t.trim()); }}>
-                            Rename
                           </button>
                           <button type="button" onClick={async () => { if (!task.id) return; await deleteGeneralTask(task.id); }}>
                             Delete

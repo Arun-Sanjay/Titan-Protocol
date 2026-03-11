@@ -11,7 +11,6 @@ import {
   deleteBodyTask,
   ensureBodyMeta,
   getBodyScoreMapForRange,
-  renameBodyTask,
   toggleBodyTaskForDate,
   updateBodyTaskPriority,
 } from "../../../../lib/body";
@@ -57,7 +56,6 @@ type TaskBucketCardProps = {
   onAdd: () => void;
   onToggle: (task: BodyTaskWithCompletion) => void;
   onMove: (task: BodyTaskWithCompletion) => Promise<void>;
-  onRename: (task: BodyTaskWithCompletion) => Promise<void>;
   onDelete: (task: BodyTaskWithCompletion) => Promise<void>;
 };
 
@@ -73,7 +71,6 @@ function TaskBucketCard({
   onAdd,
   onToggle,
   onMove,
-  onRename,
   onDelete,
 }: TaskBucketCardProps) {
   return (
@@ -110,9 +107,6 @@ function TaskBucketCard({
                     <div className="body-menu-panel tx-menu-panel">
                       <button type="button" onClick={() => onMove(task)}>
                         {moveLabel}
-                      </button>
-                      <button type="button" onClick={() => onRename(task)}>
-                        Rename
                       </button>
                       <button type="button" onClick={() => onDelete(task)}>
                         Delete
@@ -250,15 +244,6 @@ export default function BodyClient() {
     await updateBodyTaskPriority(task.id, priority);
   }
 
-  async function handleRename(task: BodyTaskWithCompletion) {
-    if (!task.id) return;
-    const nextTitle = window.prompt("Rename task", task.title);
-    if (!nextTitle) return;
-    const trimmed = nextTitle.trim();
-    if (!trimmed) return;
-    await renameBodyTask(task.id, trimmed);
-  }
-
   async function handleDelete(task: BodyTaskWithCompletion) {
     if (!task.id) return;
     await deleteBodyTask(task.id);
@@ -362,7 +347,6 @@ export default function BodyClient() {
           onAdd={() => setIsAddingTask(true)}
           onToggle={handleToggleTask}
           onMove={(task) => handleMove(task, "main")}
-          onRename={handleRename}
           onDelete={handleDelete}
         />
 
@@ -377,7 +361,6 @@ export default function BodyClient() {
           onAdd={() => setIsAddingTask(true)}
           onToggle={handleToggleTask}
           onMove={(task) => handleMove(task, "secondary")}
-          onRename={handleRename}
           onDelete={handleDelete}
         />
       </div>

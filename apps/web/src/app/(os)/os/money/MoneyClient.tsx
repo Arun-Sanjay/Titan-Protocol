@@ -11,7 +11,6 @@ import {
   deleteMoneyTask,
   ensureMoneyMeta,
   getMoneyScoreMapForRange,
-  renameMoneyTask,
   toggleMoneyTaskForDate,
   updateMoneyTaskPriority,
 } from "../../../../lib/money";
@@ -157,15 +156,6 @@ export default function MoneyClient() {
     await updateMoneyTaskPriority(task.id, priority);
   }
 
-  async function handleRename(task: MoneyTaskWithCompletion) {
-    if (!task.id) return;
-    const nextTitle = window.prompt("Rename task", task.title);
-    if (!nextTitle) return;
-    const trimmed = nextTitle.trim();
-    if (!trimmed) return;
-    await renameMoneyTask(task.id, trimmed);
-  }
-
   async function handleDelete(task: MoneyTaskWithCompletion) {
     if (!task.id) return;
     await deleteMoneyTask(task.id);
@@ -284,7 +274,6 @@ export default function MoneyClient() {
                         <summary>•••</summary>
                         <div className="body-menu-panel tx-menu-panel">
                           <button type="button" onClick={() => handleMove(task, "main")}>Move to Main</button>
-                          <button type="button" onClick={() => handleRename(task)}>Rename</button>
                           <button type="button" onClick={() => handleDelete(task)}>Delete</button>
                         </div>
                       </details>
@@ -332,7 +321,6 @@ export default function MoneyClient() {
                         <summary>•••</summary>
                         <div className="body-menu-panel tx-menu-panel">
                           <button type="button" onClick={() => handleMove(task, "secondary")}>Move to Secondary</button>
-                          <button type="button" onClick={() => handleRename(task)}>Rename</button>
                           <button type="button" onClick={() => handleDelete(task)}>Delete</button>
                         </div>
                       </details>

@@ -22,7 +22,6 @@ import {
   deleteMindTask,
   ensureMindMeta,
   getMindScoreMapForRange,
-  renameMindTask,
   setMindTaskCompletion,
   updateMindTaskKind,
 } from "../../../../lib/mind";
@@ -150,7 +149,6 @@ export default function MindPage() {
 
   async function handleDeleteTask(taskId: string) {
     if (!taskId) return;
-    if (!confirm("Delete this task?")) return;
     try {
       await deleteMindTask(taskId);
     } catch (err) {
@@ -297,9 +295,6 @@ export default function MindPage() {
                         <button type="button" onClick={async () => { await updateMindTaskKind(task.id, "main"); }}>
                           Move to Main
                         </button>
-                        <button type="button" onClick={async () => { const t = window.prompt("Rename task", task.title); if (!t) return; await renameMindTask(task.id, t.trim()); }}>
-                          Rename
-                        </button>
                         <button type="button" onClick={() => handleDeleteTask(task.id)}>
                           Delete
                         </button>
@@ -344,9 +339,6 @@ export default function MindPage() {
                       <div className="body-menu-panel">
                         <button type="button" onClick={async () => { await updateMindTaskKind(task.id, "secondary"); }}>
                           Move to Secondary
-                        </button>
-                        <button type="button" onClick={async () => { const t = window.prompt("Rename task", task.title); if (!t) return; await renameMindTask(task.id, t.trim()); }}>
-                          Rename
                         </button>
                         <button type="button" onClick={() => handleDeleteTask(task.id)}>
                           Delete
