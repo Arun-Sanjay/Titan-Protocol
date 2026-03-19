@@ -38,6 +38,16 @@ fn toggle_focus_popup(app: &tauri::AppHandle) {
 }
 
 fn main() {
+    // On Windows, hint WebView2 to use hardware-accelerated rendering and
+    // skip the smart-screen / first-run setup that can delay initial load.
+    #[cfg(target_os = "windows")]
+    {
+        std::env::set_var(
+            "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+            "--enable-gpu-rasterization --disable-features=msSmartScreenProtection --autoplay-policy=no-user-gesture-required",
+        );
+    }
+
     tauri::Builder::default()
         .system_tray(make_tray())
         .on_system_tray_event(|app, event| match event {

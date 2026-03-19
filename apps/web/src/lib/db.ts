@@ -864,6 +864,13 @@ class TitanBodyDB extends Dexie {
 
 export const db = new TitanBodyDB();
 
+// Eagerly open the database so IndexedDB is ready before the first query.
+// This avoids a cold-start delay on Windows (WebView2) where the first
+// useLiveQuery would otherwise block until the connection is established.
+db.open().catch((err) => {
+  console.error("[TitanDB] Failed to open database:", err);
+});
+
 type EngineTaskRow = {
   id?: number;
   title: string;
