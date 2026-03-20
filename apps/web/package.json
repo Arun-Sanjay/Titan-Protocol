@@ -8,11 +8,19 @@
     "build:tauri": "cross-env TAURI=1 next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
-    "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build"
+    "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build",
+    "tauri:android:init": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android init",
+    "tauri:android:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android dev",
+    "tauri:android:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.0",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-notification": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
     "cmdk": "^1.1.1",
     "dexie": "^4.3.0",
     "dexie-react-hooks": "^4.2.0",
@@ -27,7 +35,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
-    "@tauri-apps/cli": "^1.5.0",
+    "@tauri-apps/cli": "^2.0.0",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -37,6 +45,7 @@
     "eslint-config-next": "^16.1.6",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }

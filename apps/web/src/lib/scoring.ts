@@ -19,6 +19,7 @@ import {
   type MoneyLog,
   type MoneyTask,
 } from "./db";
+import { withScoreCache } from "./score-cache";
 import {
   addDaysISO,
   assertDateISO,
@@ -323,16 +324,18 @@ export async function getDateRangeScoresForEngine(
   const safeEnd = assertDateISO(endDate);
   if (safeStart > safeEnd) return [];
 
-  const historyStart = weekStartISO(safeStart);
-  const dateKeys = listDateRangeISO(safeStart, safeEnd);
+  return withScoreCache(`range:${engine}:${safeStart}:${safeEnd}`, async () => {
+    const historyStart = weekStartISO(safeStart);
+    const dateKeys = listDateRangeISO(safeStart, safeEnd);
 
-  if (engine === "mind") {
-    const snapshot = await loadMindSnapshot(historyStart, safeEnd);
-    return dateKeys.map((dateKey) => ({ dateKey, score: computeMindScoreForDate(snapshot, dateKey) }));
-  }
+    if (engine === "mind") {
+      const snapshot = await loadMindSnapshot(historyStart, safeEnd);
+      return dateKeys.map((dateKey) => ({ dateKey, score: computeMindScoreForDate(snapshot, dateKey) }));
+    }
 
-  const snapshot = await loadBodyLikeSnapshot(engine, historyStart, safeEnd);
-  return dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(snapshot, dateKey) }));
+    const snapshot = await loadBodyLikeSnapshot(engine, historyStart, safeEnd);
+    return dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(snapshot, dateKey) }));
+  });
 }
 
 export async function getDateRangeScoresForAllEngines(
@@ -343,22 +346,24 @@ export async function getDateRangeScoresForAllEngines(
   const safeEnd = assertDateISO(endDate);
   if (safeStart > safeEnd) return emptyAllEngineScores();
 
-  const historyStart = weekStartISO(safeStart);
-  const dateKeys = listDateRangeISO(safeStart, safeEnd);
+  return withScoreCache(`allRange:${safeStart}:${safeEnd}`, async () => {
+    const historyStart = weekStartISO(safeStart);
+    const dateKeys = listDateRangeISO(safeStart, safeEnd);
 
-  const [bodySnapshot, mindSnapshot, moneySnapshot, generalSnapshot] = await Promise.all([
-    loadBodyLikeSnapshot("body", historyStart, safeEnd),
-    loadMindSnapshot(historyStart, safeEnd),
-    loadBodyLikeSnapshot("money", historyStart, safeEnd),
-    loadBodyLikeSnapshot("general", historyStart, safeEnd),
-  ]);
+    const [bodySnapshot, mindSnapshot, moneySnapshot, generalSnapshot] = await Promise.all([
+      loadBodyLikeSnapshot("body", historyStart, safeEnd),
+      loadMindSnapshot(historyStart, safeEnd),
+      loadBodyLikeSnapshot("money", historyStart, safeEnd),
+      loadBodyLikeSnapshot("general", historyStart, safeEnd),
+    ]);
 
-  return {
-    body: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(bodySnapshot, dateKey) })),
-    mind: dateKeys.map((dateKey) => ({ dateKey, score: computeMindScoreForDate(mindSnapshot, dateKey) })),
-    money: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(moneySnapshot, dateKey) })),
-    general: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(generalSnapshot, dateKey) })),
-  };
+    return {
+      body: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(bodySnapshot, dateKey) })),
+      mind: dateKeys.map((dateKey) => ({ dateKey, score: computeMindScoreForDate(mindSnapshot, dateKey) })),
+      money: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(moneySnapshot, dateKey) })),
+      general: dateKeys.map((dateKey) => ({ dateKey, score: computeBodyLikeScoreForDate(generalSnapshot, dateKey) })),
+    };
+  });
 }
 
 export async function getDayScoreForEngine(engine: EngineKey, dateKey: string): Promise<DayScore> {
@@ -387,46 +392,25 @@ export async function getMonthConsistencyForEngine(
   const monthEndInclusive = addDaysISO(end, -1);
 
   const monthlyScores = await getDateRangeScoresForEngine(engine, start, monthEndInclusive);
-  const scoreByDate = new Map<string, number>();
+  const scoreMap: Record<string, number> = {};
   for (const entry of monthlyScores) {
     if (entry.score.pointsTotal > 0) {
-      scoreByDate.set(entry.dateKey, entry.score.percent);
+      scoreMap[entry.dateKey] = entry.score.percent;
     }
   }
 
   const now = todayISO();
   const effectiveEnd = now < end ? now : monthEndInclusive;
-  if (start > effectiveEnd) {
-    return { percent: 0, consistentDays: 0, totalDays: 0, currentStreak: 0, bestStreak: 0 };
-  }
 
-  const days = listDateRangeISO(start, effectiveEnd);
-  let consistentDays = 0;
-  let bestStreak = 0;
-  let runningStreak = 0;
-
-  for (const day of days) {
-    if ((scoreByDate.get(day) ?? 0) >= 60) {
-      consistentDays++;
-      runningStreak++;
-      if (runningStreak > bestStreak) bestStreak = runningStreak;
-    } else {
-      runningStreak = 0;
-    }
-  }
-
-  let currentStreak = 0;
-  for (let i = days.length - 1; i >= 0; i--) {
-    if ((scoreByDate.get(days[i]) ?? 0) >= 60) {
-      currentStreak++;
-    } else {
-      break;
-    }
-  }
-
-  const totalDays = days.length;
-  const percent = totalDays === 0 ? 0 : Math.round((consistentDays / totalDays) * 100);
-  return { percent, consistentDays, totalDays, currentStreak, bestStreak };
+  // Delegate to the pure computeMonthConsistency function
+  const result = computeMonthConsistency(scoreMap, start, effectiveEnd, start, effectiveEnd, 60);
+  return {
+    percent: result.consistencyPct,
+    consistentDays: result.consistentDays,
+    totalDays: result.daysElapsed,
+    currentStreak: result.currentStreak,
+    bestStreak: result.bestStreak,
+  };
 }
 
 export async function getTitanScoreForDate(dateKey: string): Promise<TitanScore> {

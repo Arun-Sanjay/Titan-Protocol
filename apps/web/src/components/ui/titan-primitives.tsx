@@ -158,3 +158,67 @@ export function TitanMetric({ label, value, meta, className }: TitanMetricProps)
     </div>
   );
 }
+
+/* ── Skeleton ──────────────────────────────────────────────────────────── */
+
+type TitanSkeletonProps = {
+  height?: string | number;
+  width?: string;
+  variant?: "text" | "card" | "metric";
+  className?: string;
+};
+
+export function TitanSkeleton({
+  height = "1em",
+  width = "100%",
+  variant = "text",
+  className,
+}: TitanSkeletonProps) {
+  const h = variant === "card" ? "200px" : variant === "metric" ? "100px" : height;
+  return (
+    <div
+      className={cx("tx-skeleton", className)}
+      style={{ height: h, width }}
+      aria-hidden
+    />
+  );
+}
+
+/* ── Empty State ───────────────────────────────────────────────────────── */
+
+type TitanEmptyStateProps = {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  action?: { label: string; href?: string; onClick?: () => void };
+  className?: string;
+};
+
+export function TitanEmptyState({
+  icon,
+  title,
+  description,
+  action,
+  className,
+}: TitanEmptyStateProps) {
+  return (
+    <div className={cx("tx-empty-state", className)}>
+      {icon && <div className="tx-empty-state-icon">{icon}</div>}
+      <p className="tx-empty-state-title">{title}</p>
+      {description && <p className="tx-empty-state-desc">{description}</p>}
+      {action && (
+        <div style={{ marginTop: 16 }}>
+          {action.href ? (
+            <Link href={action.href} className="tx-btn tx-btn--solid tx-btn--compact">
+              {action.label}
+            </Link>
+          ) : (
+            <button type="button" onClick={action.onClick} className="tx-btn tx-btn--solid tx-btn--compact">
+              {action.label}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

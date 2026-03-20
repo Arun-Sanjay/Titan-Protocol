@@ -9,6 +9,8 @@ import {
   setLastBackupTime,
 } from "@/lib/backup";
 import { useOnboarding } from "@/components/onboarding/OnboardingWizard";
+import { useTheme } from "@/components/ui/ThemeProvider";
+import type { TitanTheme } from "@/lib/theme";
 
 export default function SettingsPage() {
   // ── Backup state ──────────────────────────────────────────────────────────
@@ -17,6 +19,9 @@ export default function SettingsPage() {
   const [importing, setImporting] = React.useState(false);
   const [status, setStatus] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // ── Theme ────────────────────────────────────────────────────────────────
+  const { theme, setTheme } = useTheme();
 
   // ── Onboarding ────────────────────────────────────────────────────────────
   const { reset: resetOnboarding } = useOnboarding();
@@ -112,6 +117,68 @@ export default function SettingsPage() {
         <p className="tp-kicker">Configuration</p>
         <h1 className="tp-title text-3xl font-bold md:text-4xl">SETTINGS</h1>
       </header>
+
+      {/* ── Appearance ─────────────────────────────────────────────────── */}
+      <section className="tp-panel p-5">
+        <p className="tp-kicker mb-4">Appearance</p>
+        <div className="flex gap-3">
+          {(
+            [
+              {
+                key: "hud" as TitanTheme,
+                label: "Black Metallic",
+                desc: "Clean silver-on-black, minimal glow",
+                gradient: "linear-gradient(135deg, #0b0b0b 0%, #1a1a1a 50%, #0b0b0b 100%)",
+              },
+              {
+                key: "cyberpunk" as TitanTheme,
+                label: "Cyberpunk",
+                desc: "Cyan accents, neon glow, dense HUD",
+                gradient: "linear-gradient(135deg, #050607 0%, #0c1a2a 50%, #050607 100%)",
+              },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setTheme(opt.key)}
+              className="flex-1 rounded-xl border p-4 text-left transition-all duration-150"
+              style={{
+                borderColor:
+                  theme === opt.key
+                    ? opt.key === "cyberpunk"
+                      ? "rgba(56, 189, 248, 0.5)"
+                      : "rgba(255, 255, 255, 0.3)"
+                    : "rgba(255, 255, 255, 0.08)",
+                background: opt.gradient,
+                boxShadow:
+                  theme === opt.key
+                    ? opt.key === "cyberpunk"
+                      ? "0 0 20px rgba(56, 189, 248, 0.15)"
+                      : "0 0 20px rgba(255, 255, 255, 0.05)"
+                    : "none",
+              }}
+            >
+              <span
+                className="mb-1 block text-sm font-semibold"
+                style={{
+                  color:
+                    theme === opt.key
+                      ? opt.key === "cyberpunk"
+                        ? "#38bdf8"
+                        : "rgba(245, 248, 255, 0.92)"
+                      : "rgba(245, 248, 255, 0.6)",
+                }}
+              >
+                {opt.label}
+              </span>
+              <span className="block text-xs" style={{ color: "rgba(210, 216, 230, 0.5)" }}>
+                {opt.desc}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* ── Data Backup & Restore ──────────────────────────────────────── */}
       <section className="tp-panel p-5">

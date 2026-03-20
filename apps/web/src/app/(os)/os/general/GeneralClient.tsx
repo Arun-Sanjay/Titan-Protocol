@@ -24,6 +24,14 @@ import {
 import { computeMonthConsistency } from "../../../../lib/scoring";
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
 import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
+import {
+  TitanPageHeader,
+  TitanPanel,
+  TitanPanelHeader,
+  TitanProgress,
+  TitanButton,
+  TitanEmptyState,
+} from "../../../../components/ui/titan-primitives";
 
 
 export default function GeneralClient() {
@@ -149,36 +157,34 @@ export default function GeneralClient() {
   }
 
   return (
-    <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
-      <div className="grid grid-cols-[1fr_auto] items-start gap-6">
-        <header>
-          <h1 className="tp-title text-3xl font-bold md:text-4xl">GENERAL ENGINE</h1>
-          <p className="tp-subtitle mt-3 text-sm text-white/70">Daily log · {selectedDateKey}</p>
-          <div className="mt-3 flex items-center gap-3 text-sm text-white/65">
-            <span className="body-consistency-label">Selected</span>
+    <main className="tx-body-page w-full px-2 py-2 sm:px-4 sm:py-4">
+      <TitanPageHeader
+        kicker="General Engine"
+        title="GENERAL"
+        subtitle={`Daily performance log · ${selectedDateKey}`}
+        rightSlot={
+          <div className="tx-date-pill">
+            <span className="tx-kicker">Selected</span>
             <input
               type="date"
               value={selectedDateKey}
               onChange={(event) => handleDateChange(event.target.value)}
-              className="body-select h-8 px-2"
             />
           </div>
-        </header>
+        }
+      />
 
-        <section className="tp-panel p-4">
-          <p className="tp-kicker">Day Score</p>
-          <p className="tp-score-value text-3xl">{score.percent}%</p>
-          <p className="mt-2 text-xs text-white/65">
-            Main {score.mainDone}/{score.mainTotal} • Secondary {score.secondaryDone}/{score.secondaryTotal} • Points{" "}
-            {score.pointsDone}/{score.pointsTotal}
-          </p>
-          <div className="tp-progress mt-3">
-            <span style={{ width: `${score.percent}%` }} />
-          </div>
-        </section>
-      </div>
+      <TitanPanel className="mt-4">
+        <p className="tx-kicker">Day Score</p>
+        <p className="tx-score-main tx-display mt-1">{score.percent}%</p>
+        <p className="tx-muted mt-2">
+          Main {score.mainDone}/{score.mainTotal} • Secondary {score.secondaryDone}/{score.secondaryTotal} • Points{" "}
+          {score.pointsDone}/{score.pointsTotal}
+        </p>
+        <TitanProgress value={score.percent} className="mt-3" />
+      </TitanPanel>
 
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="tx-body-grid mt-4">
         <BodyCalendar
           selectedDateKey={selectedDateKey}
           onSelectDate={handleDateChange}
@@ -189,9 +195,9 @@ export default function GeneralClient() {
           startDateKey={generalStartDateKey}
         />
 
-        <section className="tp-panel p-5 sm:p-6">
-          <p className="tp-kicker">Consistency</p>
-          <p className="tp-score-value text-3xl mt-2">{consistency.consistencyPct}%</p>
+        <TitanPanel>
+          <p className="tx-kicker">Consistency</p>
+          <p className="tx-score-main tx-display mt-2">{consistency.consistencyPct}%</p>
           <div className="body-consistency-stack">
             <div className="body-consistency-row">
               <p className="body-consistency-label">Consistent Days</p>
@@ -216,45 +222,37 @@ export default function GeneralClient() {
               startDateKey={generalStartDateKey}
             />
           </div>
-        </section>
+        </TitanPanel>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="tp-panel p-5 sm:p-6">
-          <div className="tp-panel-head">
-            <p className="tp-kicker">Secondary Tasks</p>
-            <p className="tp-muted">{selectedDateKey}</p>
-          </div>
+      <div className="tx-body-tasks mt-4">
+        <TitanPanel>
+          <TitanPanelHeader kicker="Secondary Tasks" rightSlot={<span className="tx-muted">{selectedDateKey}</span>} />
 
           {!hasTasks && secondaryTasks.length === 0 ? (
-            <div className="body-empty mt-4">
-              <p>No secondary tasks for this date.</p>
-              <button
-                type="button"
-                onClick={() => setIsAddingTask(true)}
-                className="tp-button mt-4 inline-flex w-auto px-4"
-              >
-                Add Task
-              </button>
-            </div>
+            <TitanEmptyState
+              title="No secondary tasks"
+              description="Add your first secondary task to start tracking."
+              action={{ label: "Add Task", onClick: () => setIsAddingTask(true) }}
+              className="mt-4"
+            />
           ) : (
-            <div className="mt-4 space-y-2">
+            <div className="tx-task-list">
               {secondaryTasks.length === 0 ? (
-                <div className="body-empty">No secondary tasks.</div>
+                <div className="tx-task-empty">No secondary tasks.</div>
               ) : (
                 secondaryTasks.map((task) => (
-                  <div key={task.id} className="body-task-row">
-                    <label className="flex items-center gap-3">
+                  <div key={task.id} className="tx-task-row">
+                    <div className="tx-task-left">
                       <input
                         type="checkbox"
                         checked={task.completed}
                         onChange={() => handleToggleTask(task)}
-                        className="h-4 w-4 accent-white"
                       />
                       <span>{task.title}</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="body-badge">SECONDARY</span>
+                    </div>
+                    <div className="tx-task-right">
+                      <span className="tx-pill">Secondary</span>
                       <details className="body-menu">
                         <summary>•••</summary>
                         <div className="body-menu-panel">
@@ -273,42 +271,38 @@ export default function GeneralClient() {
             </div>
           )}
 
-          <button type="button" onClick={() => setIsAddingTask(true)} className="tp-button mt-4 inline-flex w-auto px-4">
+          <TitanButton onClick={() => setIsAddingTask(true)} compact className="mt-4">
             Add Task
-          </button>
-        </section>
+          </TitanButton>
+        </TitanPanel>
 
-        <section className="tp-panel p-5 sm:p-6">
-          <div className="tp-panel-head">
-            <p className="tp-kicker">Main Tasks</p>
-            <p className="tp-muted">{selectedDateKey}</p>
-          </div>
+        <TitanPanel>
+          <TitanPanelHeader kicker="Main Tasks" rightSlot={<span className="tx-muted">{selectedDateKey}</span>} />
 
           {!hasTasks && mainTasks.length === 0 ? (
-            <div className="body-empty mt-4">
-              <p>No main tasks for this date.</p>
-              <button type="button" onClick={() => setIsAddingTask(true)} className="tp-button mt-4 inline-flex w-auto px-4">
-                Add Task
-              </button>
-            </div>
+            <TitanEmptyState
+              title="No main tasks"
+              description="Add your first main task to start tracking."
+              action={{ label: "Add Task", onClick: () => setIsAddingTask(true) }}
+              className="mt-4"
+            />
           ) : (
-            <div className="mt-4 space-y-2">
+            <div className="tx-task-list">
               {mainTasks.length === 0 ? (
-                <div className="body-empty">No main tasks.</div>
+                <div className="tx-task-empty">No main tasks.</div>
               ) : (
                 mainTasks.map((task) => (
-                  <div key={task.id} className="body-task-row">
-                    <label className="flex items-center gap-3">
+                  <div key={task.id} className="tx-task-row">
+                    <div className="tx-task-left">
                       <input
                         type="checkbox"
                         checked={task.completed}
                         onChange={() => handleToggleTask(task)}
-                        className="h-4 w-4 accent-white"
                       />
                       <span>{task.title}</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="body-badge">MAIN</span>
+                    </div>
+                    <div className="tx-task-right">
+                      <span className="tx-pill">Main</span>
                       <details className="body-menu">
                         <summary>•••</summary>
                         <div className="body-menu-panel">
@@ -327,49 +321,51 @@ export default function GeneralClient() {
             </div>
           )}
 
-          <button type="button" onClick={() => setIsAddingTask(true)} className="tp-button mt-4 inline-flex w-auto px-4">
+          <TitanButton onClick={() => setIsAddingTask(true)} compact className="mt-4">
             Add Task
-          </button>
-        </section>
+          </TitanButton>
+        </TitanPanel>
       </div>
 
       {isAddingTask ? (
-        <div className="body-modal">
-          <div className="body-modal-panel">
-            <div className="tp-panel-head">
-              <p className="tp-kicker">New General Task</p>
-              <button type="button" onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }} className="tp-button tp-button-inline">
-                Close
-              </button>
-            </div>
+        <div className="tx-modal">
+          <div className="tx-modal-panel">
+            <TitanPanelHeader
+              kicker="New General Task"
+              rightSlot={
+                <TitanButton tone="ghost" compact onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }}>
+                  Close
+                </TitanButton>
+              }
+            />
             <div className="mt-4 space-y-4">
               <div>
-                <label className="body-label">Title</label>
+                <label className="tx-label">Title</label>
                 <input
                   value={newTaskTitle}
                   onChange={(event) => setNewTaskTitle(event.target.value)}
-                  className="body-input"
+                  className="tx-input"
                   placeholder="Task title"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === "Enter") handleAddTask(); }}
                 />
               </div>
               <div>
-                <label className="body-label">Priority</label>
-                <select value={newTaskPriority} onChange={(event) => setNewTaskPriority(event.target.value as "main" | "secondary")} className="body-select">
+                <label className="tx-label">Priority</label>
+                <select value={newTaskPriority} onChange={(event) => setNewTaskPriority(event.target.value as "main" | "secondary")} className="tx-select">
                   <option value="main">Main (2 pts)</option>
                   <option value="secondary">Secondary (1 pt)</option>
                 </select>
               </div>
               <div>
-                <label className="body-label">How many days per week?</label>
-                <p className="tp-muted mb-1" style={{ fontSize: "0.75rem" }}>
+                <label className="tx-label">How many days per week?</label>
+                <p className="tx-muted mb-1" style={{ fontSize: "0.75rem" }}>
                   Set less than 7 if you take rest days — skipping won&apos;t hurt your score once the weekly goal is met.
                 </p>
                 <select
                   value={newTaskDaysPerWeek}
                   onChange={(event) => setNewTaskDaysPerWeek(Number(event.target.value))}
-                  className="body-select"
+                  className="tx-select"
                 >
                   {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                     <option key={n} value={n}>
@@ -380,8 +376,8 @@ export default function GeneralClient() {
               </div>
             </div>
             <div className="mt-5 flex gap-2">
-              <button type="button" onClick={handleAddTask} className="tp-button w-auto px-4">Create</button>
-              <button type="button" onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }} className="tp-button w-auto px-4">Cancel</button>
+              <TitanButton onClick={handleAddTask}>Create</TitanButton>
+              <TitanButton tone="ghost" onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }}>Cancel</TitanButton>
             </div>
           </div>
         </div>

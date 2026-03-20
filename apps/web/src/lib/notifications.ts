@@ -62,7 +62,7 @@ export async function requestPermission(): Promise<boolean> {
   if ("__TAURI__" in window) {
     try {
       const { isPermissionGranted, requestPermission: tauriRequest } = await import(
-        "@tauri-apps/api/notification"
+        "@tauri-apps/plugin-notification"
       );
       let granted = await isPermissionGranted();
       if (!granted) {
@@ -92,7 +92,7 @@ export async function sendNotification(title: string, body: string): Promise<voi
   if ("__TAURI__" in window) {
     try {
       const { sendNotification: tauriSend } = await import(
-        "@tauri-apps/api/notification"
+        "@tauri-apps/plugin-notification"
       );
       tauriSend({ title, body });
       return;

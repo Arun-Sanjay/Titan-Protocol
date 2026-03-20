@@ -9,6 +9,8 @@ import { CommandPalette } from "../../../components/ui/CommandPalette";
 import { NavIcon } from "../../../components/ui/NavIcon";
 import { playClick } from "../../../lib/sound";
 import OnboardingWizard, { useOnboarding } from "../../../components/onboarding/OnboardingWizard";
+import { useTheme } from "../../../components/ui/ThemeProvider";
+import { CyberTicker } from "./CyberTicker";
 
 type NavItem = {
   href: string;
@@ -61,6 +63,7 @@ function isActive(pathname: string, href: string): boolean {
 
 export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
+  const { theme } = useTheme();
   const {
     isComplete: onboardingComplete,
     markComplete: markOnboardingComplete,
@@ -222,6 +225,8 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
           <div className="min-w-0">{children}</div>
         </PageTransition>
       </div>
+
+      {theme === "cyberpunk" && <CyberTicker />}
     </div>
   );
 }

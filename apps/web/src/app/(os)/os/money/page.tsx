@@ -1,12 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import PageSkeleton from "@/components/ui/PageSkeleton";
-
-const MoneyClient = dynamic(() => import("./MoneyClient"), {
-  ssr: false,
-  loading: () => <PageSkeleton />,
-});
+import MoneyClient from "./MoneyClient";
 
 export default function MoneyPage() {
   return <MoneyClient />;

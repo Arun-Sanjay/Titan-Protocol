@@ -84,11 +84,24 @@ export default function WeightPage() {
   const [selectedDate, setSelectedDate] = React.useState(today);
   const [weightInput, setWeightInput] = React.useState("");
 
-  // Reactive queries
+  // Reactive queries — bounded to last 180 days for performance
+  const chartBoundary = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 180);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
   const allEntries =
     useLiveQuery(
-      () => db.body_weight_entries.orderBy("dateKey").toArray(),
-      [],
+      () =>
+        db.body_weight_entries
+          .where("dateKey")
+          .aboveOrEqual(chartBoundary)
+          .sortBy("dateKey"),
+      [chartBoundary],
     ) ?? ([] as BodyWeightEntry[]);
 
   const latestEntry = useLiveQuery(

@@ -1,6 +1,13 @@
 import "../globals.css";
 import "./os.css";
 import type { Metadata } from "next";
+import { JetBrains_Mono } from "next/font/google";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-cyber",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Titan Protocol",
@@ -15,7 +22,7 @@ export default function OSLayout({
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="tp-os tp-os-flat min-h-screen antialiased font-sans">
+      <body className={`tp-os tp-os-flat min-h-screen antialiased font-sans ${jetbrainsMono.variable}`}>
         {children}
       </body>
     </html>

@@ -18,14 +18,29 @@ const EMPTY_CONSISTENCY: ConsistencyResult = {
   bestStreak: 0,
 };
 
+export type UseEngineScoreResult = {
+  score: DayScore;
+  isLoading: boolean;
+};
+
+export type UseEngineConsistencyResult = {
+  consistency: ConsistencyResult;
+  isLoading: boolean;
+};
+
 /**
  * Reactive hook that returns the day score for a given engine and date.
  * Automatically re-renders when underlying Dexie data changes.
  */
-export function useEngineScore(engine: EngineKey, dateKey: string): DayScore {
-  return (
-    useLiveQuery(() => getDayScoreForEngine(engine, dateKey), [engine, dateKey]) ?? EMPTY_SCORE
+export function useEngineScore(engine: EngineKey, dateKey: string): UseEngineScoreResult {
+  const result = useLiveQuery(
+    () => getDayScoreForEngine(engine, dateKey),
+    [engine, dateKey],
   );
+  return {
+    score: result ?? EMPTY_SCORE,
+    isLoading: result === undefined,
+  };
 }
 
 /**
@@ -35,11 +50,13 @@ export function useEngineScore(engine: EngineKey, dateKey: string): DayScore {
 export function useEngineConsistency(
   engine: EngineKey,
   monthKey: string,
-): ConsistencyResult {
-  return (
-    useLiveQuery(
-      () => getMonthConsistencyForEngine(engine, monthKey),
-      [engine, monthKey],
-    ) ?? EMPTY_CONSISTENCY
+): UseEngineConsistencyResult {
+  const result = useLiveQuery(
+    () => getMonthConsistencyForEngine(engine, monthKey),
+    [engine, monthKey],
   );
+  return {
+    consistency: result ?? EMPTY_CONSISTENCY,
+    isLoading: result === undefined,
+  };
 }

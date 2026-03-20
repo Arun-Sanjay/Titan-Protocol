@@ -13,7 +13,7 @@ export function PageTransition({ children }: Readonly<{ children: React.ReactNod
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={pathname}
         initial={{ opacity: 0, y: 8 }}

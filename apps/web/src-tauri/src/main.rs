@@ -1,45 +1,74 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
-use tauri::{
-    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, WindowBuilder, WindowUrl,
-};
+#[cfg(desktop)]
+mod desktop {
+    use tauri::{
+        menu::{Menu, MenuItem},
+        tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+        webview::WebviewWindowBuilder,
+        Manager, WebviewUrl,
+    };
 
-fn make_tray() -> SystemTray {
-    let menu = SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("focus", "Focus Timer"))
-        .add_item(CustomMenuItem::new("quit", "Quit"));
-    SystemTray::new().with_menu(menu)
-}
+    pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+        let focus_item = MenuItem::with_id(app, "focus", "Focus Timer", true, None::<&str>)?;
+        let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+        let menu = Menu::with_items(app, &[&focus_item, &quit_item])?;
 
-fn toggle_focus_popup(app: &tauri::AppHandle) {
-    const LABEL: &str = "focus-popup";
+        let _tray = TrayIconBuilder::new()
+            .icon(app.default_window_icon().unwrap().clone())
+            .icon_as_template(true)
+            .menu(&menu)
+            .on_tray_icon_event(|tray, event| {
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    toggle_focus_popup(tray.app_handle());
+                }
+            })
+            .on_menu_event(|app, event| match event.id().as_ref() {
+                "focus" => {
+                    toggle_focus_popup(app);
+                }
+                "quit" => {
+                    std::process::exit(0);
+                }
+                _ => {}
+            })
+            .build(app)?;
 
-    if let Some(win) = app.get_window(LABEL) {
-        // Toggle: if visible, hide; if hidden, show & focus
-        if win.is_visible().unwrap_or(false) {
-            let _ = win.hide();
-        } else {
-            let _ = win.show();
-            let _ = win.set_focus();
-        }
-        return;
+        Ok(())
     }
 
-    // First time: create the popup window
-    let _win = WindowBuilder::new(app, LABEL, WindowUrl::App("/os/focus".into()))
-        .title("Focus Timer")
-        .inner_size(320.0, 360.0)
-        .resizable(false)
-        .decorations(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .center()
-        .build();
+    fn toggle_focus_popup(app: &tauri::AppHandle) {
+        const LABEL: &str = "focus-popup";
+
+        if let Some(win) = app.get_webview_window(LABEL) {
+            if win.is_visible().unwrap_or(false) {
+                let _ = win.hide();
+            } else {
+                let _ = win.show();
+                let _ = win.set_focus();
+            }
+            return;
+        }
+
+        let _win = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("/os/focus".into()))
+            .title("Focus Timer")
+            .inner_size(320.0, 360.0)
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .center()
+            .build();
+    }
 }
 
 fn main() {
-    // On Windows, hint WebView2 to use hardware-accelerated rendering and
-    // skip the smart-screen / first-run setup that can delay initial load.
+    // On Windows, hint WebView2 to use hardware-accelerated rendering
     #[cfg(target_os = "windows")]
     {
         std::env::set_var(
@@ -48,23 +77,24 @@ fn main() {
         );
     }
 
-    tauri::Builder::default()
-        .system_tray(make_tray())
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::LeftClick { .. } => {
-                toggle_focus_popup(app);
-            }
-            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-                "focus" => {
-                    toggle_focus_popup(app);
-                }
-                "quit" => {
-                    std::process::exit(0);
-                }
-                _ => {}
-            },
-            _ => {}
-        })
+    let mut builder = tauri::Builder::default();
+
+    // Register plugins
+    builder = builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_shell::init());
+
+    // Desktop-only: system tray setup
+    #[cfg(desktop)]
+    {
+        builder = builder.setup(|app| {
+            desktop::setup_tray(app)?;
+            Ok(())
+        });
+    }
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

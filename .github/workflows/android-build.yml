@@ -1,0 +1,80 @@
+name: Android Tauri Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;27.0.12077973"
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/web/src-tauri -> target
+
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Initialize Android project
+        working-directory: apps/web
+        run: npx tauri android init
+
+      - name: Build Tauri app (Android)
+        working-directory: apps/web
+        env:
+          TAURI: "1"
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+        run: npx tauri android build
+
+      - name: List Android bundle output
+        run: |
+          find apps/web/src-tauri/gen/android/app/build/outputs -type f -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "No Android bundles found"
+
+      - name: Upload Android APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-android-apk
+          path: |
+            apps/web/src-tauri/gen/android/app/build/outputs/**/*.apk
+          if-no-files-found: warn
+
+      - name: Upload Android AAB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-android-aab
+          path: |
+            apps/web/src-tauri/gen/android/app/build/outputs/**/*.aab
+          if-no-files-found: warn
