@@ -54,7 +54,7 @@ jobs:
         working-directory: apps/web
         env:
           TAURI: "1"
-        run: npx tauri build --bundle nsis
+        run: npx tauri build --bundles nsis
 
       - name: List Windows bundle output
         shell: pwsh
