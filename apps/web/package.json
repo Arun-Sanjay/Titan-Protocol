@@ -10,11 +10,12 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
-    "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build",
-    "tauri:android:init": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android init",
-    "tauri:android:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android dev",
-    "tauri:android:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri android build"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:android:init": "tauri android init",
+    "tauri:android:dev": "tauri android dev",
+    "tauri:android:build": "tauri android build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
