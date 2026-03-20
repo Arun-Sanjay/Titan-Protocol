@@ -6,6 +6,10 @@ authors = ["Titan Protocol"]
 edition = "2021"
 build = "build.rs"
 
+[lib]
+name = "titan_protocol_lib"
+crate-type = ["staticlib", "cdylib", "lib"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

@@ -294,7 +294,7 @@ export default function MoneyClient() {
           <TitanPanelHeader kicker="Deep Work Tasks" rightSlot={<p className="tx-muted">{selectedDateKey}</p>} />
           {!hasTasks && mainTasks.length === 0 ? (
             <div className="tx-task-empty mt-4">
-              <p>No deep work tasks yet. Add tasks like "Work on business" to track your focused work.</p>
+              <p>No deep work tasks yet. Add tasks like &quot;Work on business&quot; to track your focused work.</p>
               <TitanButton className="mt-3" compact onClick={() => setIsAddingTask(true)}>
                 Add Task
               </TitanButton>

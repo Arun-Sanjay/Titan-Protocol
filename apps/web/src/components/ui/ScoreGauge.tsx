@@ -24,24 +24,12 @@ export function ScoreGauge({
 }: ScoreGaugeProps) {
   const { theme } = useTheme();
 
-  // Flat fallback for non-cyberpunk themes
-  if (theme !== "cyberpunk") {
-    return (
-      <div className={`flex flex-col items-center ${className}`}>
-        <span className="tx-score-main" style={{ fontSize: `clamp(2rem, 4vw, 3.2rem)` }}>
-          {value.toFixed(1)}%
-        </span>
-        {label && <span className="tp-muted text-xs mt-1">{label}</span>}
-      </div>
-    );
-  }
-
   const strokeWidth = 6;
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  // Animated spring for the value
+  // Animated spring for the value — hooks must be called unconditionally
   const springValue = useSpring(0, { stiffness: 60, damping: 20 });
   const strokeDashoffset = useTransform(
     springValue,
@@ -58,6 +46,18 @@ export function ScoreGauge({
     const unsubscribe = displayValue.on("change", (v) => setDisplayNum(v as number));
     return unsubscribe;
   }, [displayValue]);
+
+  // Flat fallback for non-cyberpunk themes
+  if (theme !== "cyberpunk") {
+    return (
+      <div className={`flex flex-col items-center ${className}`}>
+        <span className="tx-score-main" style={{ fontSize: `clamp(2rem, 4vw, 3.2rem)` }}>
+          {value.toFixed(1)}%
+        </span>
+        {label && <span className="tp-muted text-xs mt-1">{label}</span>}
+      </div>
+    );
+  }
 
   return (
     <div className={`score-gauge ${className}`} style={{ width: size, height: size }}>
