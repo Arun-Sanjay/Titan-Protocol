@@ -20,6 +20,7 @@ export default function OSLayout({
   return (
     <html lang="en" className="h-full" data-theme="hud">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`tp-os tp-os-flat min-h-screen antialiased font-sans ${jetbrainsMono.variable}`}>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { MobileModal } from "../../../../components/ui/MobileModal";
 import { db } from "../../../../lib/db";
 import {
   addBodyTask,
@@ -365,9 +366,7 @@ export default function BodyClient() {
         />
       </div>
 
-      {isAddingTask ? (
-        <div className="tx-modal">
-          <div className="tx-modal-panel">
+      <MobileModal open={isAddingTask} onClose={() => { setIsAddingTask(false); setNewTaskTitle(""); }} title="New Task">
             <TitanPanelHeader
               kicker="New Task"
               rightSlot={
@@ -437,9 +436,7 @@ export default function BodyClient() {
                 Cancel
               </TitanButton>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </MobileModal>
     </main>
   );
 }

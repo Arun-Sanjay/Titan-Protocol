@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { MobileModal } from "../../../../components/ui/MobileModal";
 import { db } from "../../../../lib/db";
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
 import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
@@ -357,9 +358,7 @@ export default function MindClient() {
         </section>
       </div>
 
-      {isAddingTask ? (
-        <div className="body-modal">
-          <div className="body-modal-panel">
+      <MobileModal open={isAddingTask} onClose={() => { setIsAddingTask(false); setNewTaskTitle(""); setCreateError(null); }} title="New Mind Task">
             <div className="tp-panel-head">
               <p className="tp-kicker">New Mind Task</p>
               <button
@@ -396,9 +395,7 @@ export default function MindClient() {
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </MobileModal>
     </main>
   );
 }

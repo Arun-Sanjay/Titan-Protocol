@@ -11,6 +11,9 @@ import { playClick } from "../../../lib/sound";
 import OnboardingWizard, { useOnboarding } from "../../../components/onboarding/OnboardingWizard";
 import { useTheme } from "../../../components/ui/ThemeProvider";
 import { CyberTicker } from "./CyberTicker";
+import { BottomNav } from "./BottomNav";
+import { MoreSheet } from "./MoreSheet";
+import { useIsMobile } from "../../../hooks/useIsMobile";
 
 type NavItem = {
   href: string;
@@ -70,6 +73,8 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
     reset: resetOnboarding,
   } = useOnboarding();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = React.useState(false);
+  const isMobile = useIsMobile();
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -220,13 +225,15 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
         </div>
       </aside>
 
-      <div className="tp-main min-w-0">
+      <div className={`tp-main min-w-0 ${isMobile ? "tp-main--mobile" : ""}`}>
         <PageTransition>
           <div className="min-w-0">{children}</div>
         </PageTransition>
       </div>
 
       {theme === "cyberpunk" && <CyberTicker />}
+      <BottomNav onMorePress={() => setMoreSheetOpen(true)} />
+      <MoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />
     </div>
   );
 }

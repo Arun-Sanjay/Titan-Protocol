@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { MobileModal } from "../../../../components/ui/MobileModal";
 import { db } from "../../../../lib/db";
 import {
   addGeneralTask,
@@ -327,9 +328,7 @@ export default function GeneralClient() {
         </TitanPanel>
       </div>
 
-      {isAddingTask ? (
-        <div className="tx-modal">
-          <div className="tx-modal-panel">
+      <MobileModal open={isAddingTask} onClose={() => { setIsAddingTask(false); setNewTaskTitle(""); }} title="New General Task">
             <TitanPanelHeader
               kicker="New General Task"
               rightSlot={
@@ -379,9 +378,7 @@ export default function GeneralClient() {
               <TitanButton onClick={handleAddTask}>Create</TitanButton>
               <TitanButton tone="ghost" onClick={() => { setIsAddingTask(false); setNewTaskTitle(""); }}>Cancel</TitanButton>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </MobileModal>
     </main>
   );
 }

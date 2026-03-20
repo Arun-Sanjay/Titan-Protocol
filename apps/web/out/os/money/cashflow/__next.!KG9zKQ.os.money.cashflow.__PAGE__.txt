@@ -1,6 +1,0 @@
-1:"$Sreact.fragment"
-2:I[77978,["5571","static/chunks/5571-bde8071f18fcf348.js","8500","static/chunks/8500-98e13bcce54aa7a0.js","13","static/chunks/13-d265d470d3844eee.js","5800","static/chunks/app/(os)/os/money/cashflow/page-a0aa6d3bed0532e8.js"],"default"]
-3:I[90484,[],"OutletBoundary"]
-4:"$Sreact.suspense"
-0:{"buildId":"BRhoIr8JMu06L0QEUlSTM","rsc":["$","$1","c",{"children":[["$","$L2",null,{}],null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
-5:null

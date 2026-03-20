@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { MobileModal } from "../../../../components/ui/MobileModal";
 import { db, type MoneyTask } from "../../../../lib/db";
 import {
   addMoneyTask,
@@ -336,9 +337,7 @@ export default function MoneyClient() {
         </TitanPanel>
       </div>
 
-      {isAddingTask ? (
-        <div className="tx-modal">
-          <div className="tx-modal-panel">
+      <MobileModal open={isAddingTask} onClose={() => { setIsAddingTask(false); setNewTaskTitle(""); }} title="New Deep Work Task">
             <TitanPanelHeader
               kicker="New Deep Work Task"
               rightSlot={
@@ -401,9 +400,7 @@ export default function MoneyClient() {
                 Cancel
               </TitanButton>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </MobileModal>
     </main>
   );
 }
