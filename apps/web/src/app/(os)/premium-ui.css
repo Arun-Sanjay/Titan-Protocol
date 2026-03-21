@@ -2378,19 +2378,15 @@ html[data-theme="cyberpunk"] .tp-button:hover {
 }
 
 @media (max-width: 639px) {
+  /* Hide bottom nav on mobile — replaced by hamburger drawer */
   .tx-bottom-nav {
-    display: flex;
+    display: none;
   }
 
-  /* Hide hamburger when bottom nav is present */
-  .tp-hamburger {
-    display: none !important;
-  }
-
-  /* Content padding to account for bottom nav */
+  /* Content padding to account for fixed top header */
   .tp-main--mobile {
-    padding-bottom: calc(var(--tx-mobile-bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 12px);
-    padding-top: 12px;
+    padding-top: calc(var(--tx-mobile-header-h, 52px) + env(safe-area-inset-top, 0px) + 4px);
+    padding-bottom: 12px;
   }
 
   .tp-os-shell {
@@ -2828,5 +2824,265 @@ html[data-theme="cyberpunk"] .tp-button:hover {
 }
 
 [data-theme="cyberpunk"] .tx-mobile-subnav-tab.is-active .tx-mobile-subnav-icon {
+  color: #38bdf8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION — Hamburger Header + Slide-in Drawer
+   Hidden on desktop (sm: and above). Clean, premium mobile-first design.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* --- Fixed Top Header Bar --- */
+.tx-mobile-header {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .tx-mobile-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    height: calc(var(--tx-mobile-header-h, 52px) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: 16px;
+    padding-right: 16px;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+.tx-mobile-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 9px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.tx-mobile-hamburger:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tx-hamburger-line {
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.tx-mobile-header-title {
+  flex: 1;
+  margin: 0;
+  padding-left: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tx-mobile-header-spacer {
+  width: 40px;
+}
+
+/* --- Drawer Backdrop --- */
+.tx-mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.tx-mobile-drawer-backdrop.is-open {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+/* --- Slide-in Drawer --- */
+.tx-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 91;
+  width: min(300px, 82vw);
+  background: rgba(6, 6, 10, 0.98);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 20px 0 60px rgba(0, 0, 0, 0.5);
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tx-mobile-drawer.is-open {
+  transform: translateX(0);
+}
+
+/* --- Drawer Header --- */
+.tx-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 12px) + 12px) 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.tx-drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tx-drawer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tx-drawer-close:active {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* --- Drawer Scroll Area --- */
+.tx-drawer-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* --- Drawer Groups --- */
+.tx-drawer-group {
+  padding: 8px 0;
+}
+
+.tx-drawer-group + .tx-drawer-group {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tx-drawer-group-label {
+  margin: 0;
+  padding: 4px 12px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* --- Drawer Items --- */
+.tx-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 12px;
+  min-height: 48px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tx-drawer-item:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tx-drawer-item.is-active {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 500;
+}
+
+.tx-drawer-icon {
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.tx-drawer-item.is-active .tx-drawer-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tx-drawer-settings {
+  margin-top: auto;
+}
+
+/* --- Cyberpunk Drawer Theme --- */
+[data-theme="cyberpunk"] .tx-mobile-header {
+  border-bottom-color: rgba(56, 189, 248, 0.08);
+}
+
+[data-theme="cyberpunk"] .tx-mobile-header-title {
+  font-family: var(--font-mono-cyber), monospace;
+  color: rgba(56, 189, 248, 0.7);
+}
+
+[data-theme="cyberpunk"] .tx-hamburger-line {
+  background: rgba(56, 189, 248, 0.7);
+}
+
+[data-theme="cyberpunk"] .tx-mobile-drawer {
+  border-right-color: rgba(56, 189, 248, 0.08);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.02), transparent 20%), rgba(6, 6, 10, 0.98);
+}
+
+[data-theme="cyberpunk"] .tx-drawer-brand {
+  color: rgba(56, 189, 248, 0.8);
+  font-family: var(--font-mono-cyber), monospace;
+}
+
+[data-theme="cyberpunk"] .tx-drawer-group-label {
+  font-family: var(--font-mono-cyber), monospace;
+  color: rgba(56, 189, 248, 0.3);
+}
+
+[data-theme="cyberpunk"] .tx-drawer-item.is-active {
+  background: rgba(56, 189, 248, 0.06);
+  color: #38bdf8;
+}
+
+[data-theme="cyberpunk"] .tx-drawer-item.is-active .tx-drawer-icon {
   color: #38bdf8;
 }

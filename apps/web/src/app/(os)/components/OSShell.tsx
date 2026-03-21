@@ -17,8 +17,7 @@ const CyberTickerLazy = React.lazy(() =>
 import { playClick } from "../../../lib/sound";
 import OnboardingWizard, { useOnboarding } from "../../../components/onboarding/OnboardingWizard";
 import { useTheme } from "../../../components/ui/ThemeProvider";
-import { BottomNav } from "./BottomNav";
-import { MoreSheet } from "./MoreSheet";
+import { MobileNav } from "./MobileNav";
 import { useIsMobile } from "../../../hooks/useIsMobile";
 
 type NavItem = {
@@ -78,7 +77,6 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
     markComplete: markOnboardingComplete,
     reset: resetOnboarding,
   } = useOnboarding();
-  const [moreSheetOpen, setMoreSheetOpen] = React.useState(false);
   const isMobile = useIsMobile();
 
   React.useEffect(() => {
@@ -128,9 +126,10 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
         <CommandPalette />
       </React.Suspense>
 
-      {/* Bottom nav handles mobile navigation */}
+      {/* Mobile: hamburger menu + slide-in drawer */}
+      <MobileNav />
 
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — completely unchanged */}
       <aside className="tp-nav tp-nav-desktop hidden sm:flex sm:flex-col">
         <div className="tp-nav-header">
           <div className="tp-nav-brand">
@@ -167,8 +166,6 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
           <CyberTickerLazy />
         </React.Suspense>
       )}
-      <BottomNav onMorePress={() => setMoreSheetOpen(true)} />
-      <MoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />
     </div>
   );
 }
