@@ -13,9 +13,10 @@ export default function MarketingLayout({
   return (
     <html lang="en" className="h-full" data-theme="marketing">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className="h-screen overflow-hidden antialiased">
+      <body className="h-screen overflow-hidden antialiased" style={{ overflowX: 'hidden' }}>
         <div className="tp-marketing tp-marketing-root">{children}</div>
       </body>
     </html>

@@ -2374,7 +2374,7 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   background: rgba(0, 0, 0, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 639px) {
@@ -2389,12 +2389,12 @@ html[data-theme="cyberpunk"] .tp-button:hover {
 
   /* Content padding to account for bottom nav */
   .tp-main--mobile {
-    padding-bottom: calc(var(--tx-mobile-bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 8px);
-    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+    padding-bottom: calc(var(--tx-mobile-bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px) + 12px);
+    padding-top: 12px;
   }
 
   .tp-os-shell {
-    padding-top: 0;
+    padding-top: 0 !important;
   }
 }
 
@@ -2497,12 +2497,11 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   right: 0;
   z-index: 91;
   border-radius: 18px 18px 0 0;
-  border: 1px solid var(--tx-border, rgba(255, 255, 255, 0.11));
-  border-bottom: none;
+  border-top: 1px solid var(--tx-border, rgba(255, 255, 255, 0.11));
   background: var(--tx-surface, rgba(0, 0, 0, 0.97));
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
   padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-  max-height: 85vh;
+  max-height: calc(85vh - env(safe-area-inset-top, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -2551,6 +2550,7 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding-bottom: 8px;
 }
 
 .tx-more-sheet-group {

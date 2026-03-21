@@ -573,6 +573,59 @@ html[data-theme="marketing"] body {
   }
 }
 
+@media (max-width: 639px) {
+  .tpBootRoot {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .tpTopBar {
+    top: env(safe-area-inset-top, 0.75rem);
+    left: 0.75rem;
+    right: 0.75rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  .tpTopLeft p {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+  }
+
+  .tpSkip {
+    font-size: 0.56rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .tpCenterContent {
+    bottom: max(10vh, 80px);
+    width: 100%;
+    padding: 0 24px;
+  }
+
+  .tpArcReactor {
+    width: clamp(100px, 30vw, 130px);
+  }
+
+  .tpArcLabel {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+  }
+
+  .tpArcSub {
+    font-size: 0.48rem;
+    letter-spacing: 0.14em;
+  }
+
+  .tpInitText {
+    font-size: 0.58rem;
+  }
+
+  .tpTap {
+    padding: 0.8rem 1.2rem;
+    font-size: 0.72rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tpOverlay::after,
   .tpArcRing1,
