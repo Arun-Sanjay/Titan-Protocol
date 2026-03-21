@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { MobileModal } from "../../../../components/ui/MobileModal";
+import { MobileSubNav, ENGINE_TABS } from "../../components/MobileSubNav";
 import { db } from "../../../../lib/db";
 import {
   addBodyTask,
@@ -252,6 +253,7 @@ export default function BodyClient() {
 
   return (
     <main className="tx-body-page w-full px-2 py-2 sm:px-4 sm:py-4">
+      <MobileSubNav tabs={ENGINE_TABS} />
       <div className="tx-body-top">
         <TitanPageHeader
           className="mb-0"

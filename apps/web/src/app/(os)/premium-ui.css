@@ -2448,13 +2448,13 @@ html[data-theme="cyberpunk"] .tp-button:hover {
 .tx-bottom-nav-indicator {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 24px;
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 0 8px rgba(210, 230, 255, 0.3);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Cyberpunk bottom nav */
@@ -2500,11 +2500,21 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   border-top: 1px solid var(--tx-border, rgba(255, 255, 255, 0.11));
   background: var(--tx-surface, rgba(0, 0, 0, 0.97));
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
-  padding: 8px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
   max-height: calc(85vh - env(safe-area-inset-top, 0px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-bottom-sheet-drag {
+  padding: 8px 20px 0;
+  touch-action: none;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.tx-bottom-sheet-drag:active {
+  cursor: grabbing;
 }
 
 .tx-bottom-sheet-handle {
@@ -2525,7 +2535,11 @@ html[data-theme="cyberpunk"] .tp-button:hover {
 }
 
 .tx-bottom-sheet-content {
-  /* inherits from sheet */
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Cyberpunk bottom sheet */
@@ -2727,4 +2741,79 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   [data-theme="cyberpunk"] .cyber-ticker {
     bottom: calc(var(--tx-mobile-bottom-nav-h, 64px) + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* --- Mobile Sub-Navigation (Engine/Track page switcher) --- */
+.tx-mobile-subnav {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .tx-mobile-subnav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 0 12px;
+    margin: 0 0 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .tx-mobile-subnav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tx-mobile-subnav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.86);
+    color: rgba(255, 255, 255, 0.5);
+    padding: 7px 14px;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: border-color 130ms ease, color 130ms ease, background 130ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tx-mobile-subnav-tab.is-active {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.95);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0)),
+      rgba(0, 0, 0, 0.94);
+    box-shadow: 0 0 14px rgba(175, 191, 238, 0.14);
+  }
+
+  .tx-mobile-subnav-tab:active {
+    transform: scale(0.97);
+  }
+
+  .tx-mobile-subnav-icon {
+    opacity: 0.6;
+  }
+
+  .tx-mobile-subnav-tab.is-active .tx-mobile-subnav-icon {
+    opacity: 1;
+  }
+}
+
+/* Cyberpunk mobile subnav */
+[data-theme="cyberpunk"] .tx-mobile-subnav-tab.is-active {
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="cyberpunk"] .tx-mobile-subnav-tab.is-active .tx-mobile-subnav-icon {
+  color: #38bdf8;
 }

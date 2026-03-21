@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import { MobileSubNav, ENGINE_TABS } from "../../components/MobileSubNav";
 import { db, type MoneyLoan, type MoneyTx } from "../../../../lib/db";
 import { ThreeMonthCalendar } from "../../../../components/calendar/ThreeMonthCalendar";
 import { assertDateISO, monthBounds, todayISO } from "../../../../lib/date";
@@ -371,6 +372,7 @@ export default function MoneyExpenseClient() {
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
+      <MobileSubNav tabs={ENGINE_TABS} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="tp-title text-3xl font-bold md:text-4xl">MONEY ENGINE</h1>

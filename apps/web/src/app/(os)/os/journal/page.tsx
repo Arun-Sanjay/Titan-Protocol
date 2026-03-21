@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../../../../lib/db";
 import { todayISO } from "../../../../lib/date";
 import { saveEntry, deleteEntry, searchEntries } from "../../../../lib/journal";
+import { MobileSubNav, TRACK_TABS } from "../../components/MobileSubNav";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ export default function JournalPage() {
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
+      <MobileSubNav tabs={TRACK_TABS} />
       {/* Header */}
       <header>
         <p className="tp-kicker">Daily Notes</p>

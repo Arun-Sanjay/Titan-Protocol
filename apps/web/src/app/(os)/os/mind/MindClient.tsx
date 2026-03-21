@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 
 import { MobileModal } from "../../../../components/ui/MobileModal";
+import { MobileSubNav, ENGINE_TABS } from "../../components/MobileSubNav";
 import { db } from "../../../../lib/db";
 import { BodyCalendar } from "../../../../components/body/BodyCalendar";
 import { BodyMonthlyHeatBars } from "../../../../components/body/BodyMonthlyHeatBars";
@@ -184,6 +185,7 @@ export default function MindClient() {
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
+      <MobileSubNav tabs={ENGINE_TABS} />
       <div className="grid grid-cols-[1fr_auto] items-start gap-6">
         <header>
           <h1 className="tp-title text-3xl font-bold md:text-4xl">MIND ENGINE</h1>

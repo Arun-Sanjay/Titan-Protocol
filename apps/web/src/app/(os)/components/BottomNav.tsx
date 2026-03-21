@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { NavIcon } from "../../../components/ui/NavIcon";
 import { playClick } from "../../../lib/sound";
 import { useIsMobile } from "../../../hooks/useIsMobile";
@@ -37,19 +36,35 @@ const BOTTOM_TABS: BottomTab[] = [
   { id: "more", icon: "settings", label: "More", action: "openSheet" },
 ];
 
-function getActiveTab(pathname: string): string {
+function getActiveTab(pathname: string): string | null {
+  // Normalize trailing slash (Android WebView may add one)
+  const normalizedPath =
+    pathname.endsWith("/") && pathname !== "/"
+      ? pathname.slice(0, -1)
+      : pathname;
+
   for (const tab of BOTTOM_TABS) {
     if (tab.matchPrefix) {
-      if (tab.matchPrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+      if (
+        tab.matchPrefix.some(
+          (p) => normalizedPath === p || normalizedPath.startsWith(p + "/")
+        )
+      ) {
         return tab.id;
       }
     } else if (tab.href) {
-      if (tab.href === "/os" ? pathname === "/os" : pathname.startsWith(tab.href)) {
+      if (
+        tab.href === "/os"
+          ? normalizedPath === "/os"
+          : normalizedPath.startsWith(tab.href)
+      ) {
         return tab.id;
       }
     }
   }
-  return "more";
+  // Return null instead of "more" — no tab highlighted for pages
+  // only reachable via More sheet (analytics, command, settings, etc.)
+  return null;
 }
 
 type BottomNavProps = {
@@ -63,21 +78,36 @@ export function BottomNav({ onMorePress }: BottomNavProps) {
 
   if (!isMobile) return null;
 
+  // CSS-based indicator: calculate position from active tab index
+  const activeIndex = BOTTOM_TABS.findIndex((t) => t.id === activeTab);
+
   return (
     <nav className="tx-bottom-nav" aria-label="Main navigation">
+      {/* Single indicator div positioned at nav level for reliable alignment */}
+      {activeTab !== null && activeIndex >= 0 && (
+        <div
+          className="tx-bottom-nav-indicator"
+          style={{
+            left: `${(activeIndex + 0.5) * 20}%`,
+            transform: "translateX(-50%)",
+            transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        />
+      )}
       {BOTTOM_TABS.map((tab) => {
         const isActive = tab.id === activeTab;
         const content = (
           <div className="tx-bottom-nav-tab-inner">
-            {isActive && (
-              <motion.div
-                className="tx-bottom-nav-indicator"
-                layoutId="bottomNavIndicator"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              />
-            )}
-            <NavIcon name={tab.icon} size={20} className={`tx-bottom-nav-icon ${isActive ? "is-active" : ""}`} />
-            <span className={`tx-bottom-nav-label ${isActive ? "is-active" : ""}`}>{tab.label}</span>
+            <NavIcon
+              name={tab.icon}
+              size={20}
+              className={`tx-bottom-nav-icon ${isActive ? "is-active" : ""}`}
+            />
+            <span
+              className={`tx-bottom-nav-label ${isActive ? "is-active" : ""}`}
+            >
+              {tab.label}
+            </span>
           </div>
         );
 

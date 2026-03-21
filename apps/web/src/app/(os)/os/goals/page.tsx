@@ -4,6 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Goal, type GoalTask } from "../../../../lib/db";
 import { todayISO } from "../../../../lib/date";
+import { MobileSubNav, TRACK_TABS } from "../../components/MobileSubNav";
 import {
   listGoals,
   addGoal,
@@ -580,6 +581,7 @@ export default function GoalsPage() {
 
   return (
     <main className="w-full px-2 py-2 sm:px-4 sm:py-4">
+      <MobileSubNav tabs={TRACK_TABS} />
       {/* Header */}
       <header>
         <p className="tp-kicker">Targets &amp; Progress</p>

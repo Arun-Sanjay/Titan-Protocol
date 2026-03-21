@@ -580,49 +580,65 @@ html[data-theme="marketing"] body {
   }
 
   .tpTopBar {
-    top: env(safe-area-inset-top, 0.75rem);
-    left: 0.75rem;
-    right: 0.75rem;
-    padding: 0.5rem 0.7rem;
+    top: env(safe-area-inset-top, 0.5rem);
+    left: 0.5rem;
+    right: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    gap: 0.5rem;
   }
 
   .tpTopLeft p {
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
   }
 
   .tpSkip {
-    font-size: 0.56rem;
-    padding: 0.35rem 0.6rem;
+    font-size: 0.52rem;
+    padding: 0.3rem 0.5rem;
   }
 
   .tpCenterContent {
-    bottom: max(10vh, 80px);
+    bottom: max(8vh, 60px);
     width: 100%;
-    padding: 0 24px;
+    max-width: 100vw;
+    padding: 0 20px;
+    box-sizing: border-box;
+  }
+
+  .tpCtaWrap {
+    max-width: 90vw;
   }
 
   .tpArcReactor {
-    width: clamp(100px, 30vw, 130px);
+    width: clamp(80px, 25vw, 110px);
   }
 
   .tpArcLabel {
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-align: center;
+    max-width: 80vw;
+    word-break: break-word;
   }
 
   .tpArcSub {
-    font-size: 0.48rem;
-    letter-spacing: 0.14em;
+    font-size: 0.44rem;
+    letter-spacing: 0.12em;
   }
 
   .tpInitText {
-    font-size: 0.58rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.14em;
   }
 
   .tpTap {
-    padding: 0.8rem 1.2rem;
-    font-size: 0.72rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.64rem;
+  }
+
+  /* Contain overflow on small screens */
+  .tpOverlay {
+    overflow: hidden;
   }
 }
 
