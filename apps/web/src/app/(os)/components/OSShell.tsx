@@ -5,12 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { PageTransition } from "../../../components/ui/PageTransition";
-import { CommandPalette } from "../../../components/ui/CommandPalette";
 import { NavIcon } from "../../../components/ui/NavIcon";
+
+// Lazy-load heavy components that aren't needed on initial render
+const CommandPalette = React.lazy(() =>
+  import("../../../components/ui/CommandPalette").then((mod) => ({ default: mod.CommandPalette }))
+);
+const CyberTickerLazy = React.lazy(() =>
+  import("./CyberTicker").then((mod) => ({ default: mod.CyberTicker }))
+);
 import { playClick } from "../../../lib/sound";
 import OnboardingWizard, { useOnboarding } from "../../../components/onboarding/OnboardingWizard";
 import { useTheme } from "../../../components/ui/ThemeProvider";
-import { CyberTicker } from "./CyberTicker";
 import { BottomNav } from "./BottomNav";
 import { MoreSheet } from "./MoreSheet";
 import { useIsMobile } from "../../../hooks/useIsMobile";
@@ -118,7 +124,9 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
       {!onboardingComplete && (
         <OnboardingWizard onComplete={markOnboardingComplete} />
       )}
-      <CommandPalette />
+      <React.Suspense fallback={null}>
+        <CommandPalette />
+      </React.Suspense>
 
       {/* Bottom nav handles mobile navigation */}
 
@@ -154,7 +162,11 @@ export function OSShell({ children }: Readonly<{ children: React.ReactNode }>) {
         </PageTransition>
       </div>
 
-      {theme === "cyberpunk" && <CyberTicker />}
+      {theme === "cyberpunk" && (
+        <React.Suspense fallback={null}>
+          <CyberTickerLazy />
+        </React.Suspense>
+      )}
       <BottomNav onMorePress={() => setMoreSheetOpen(true)} />
       <MoreSheet open={moreSheetOpen} onClose={() => setMoreSheetOpen(false)} />
     </div>

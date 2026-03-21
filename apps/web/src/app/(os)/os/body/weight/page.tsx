@@ -4,15 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+import { LazyRechartsProvider } from "@/components/ui/LazyRecharts";
 
 import { db } from "../../../../../lib/db";
 import type { BodyWeightEntry } from "../../../../../lib/db";
@@ -312,41 +304,45 @@ export default function WeightPage() {
           </div>
         ) : (
           <div className="mt-4" style={{ height: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={["auto", "auto"]}
-                  tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
-                  axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-                  tickLine={false}
-                  tickFormatter={(value: number) => `${value} kg`}
-                  width={60}
-                />
-                <Tooltip content={<WeightTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="weightKg"
-                  stroke="#34d399"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: "#34d399", stroke: "#34d399" }}
-                  activeDot={{ r: 5, fill: "#34d399", stroke: "#fff", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <LazyRechartsProvider fallback={<div style={{ height: 300 }} className="rounded-md border border-white/5 bg-white/[0.02]" />}>
+              {(rc) => (
+                <rc.ResponsiveContainer width="100%" height="100%">
+                  <rc.LineChart
+                    data={chartData}
+                    margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                  >
+                    <rc.CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(255,255,255,0.06)"
+                      vertical={false}
+                    />
+                    <rc.XAxis
+                      dataKey="label"
+                      tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+                      tickLine={false}
+                    />
+                    <rc.YAxis
+                      domain={["auto", "auto"]}
+                      tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                      axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+                      tickLine={false}
+                      tickFormatter={(value: number) => `${value} kg`}
+                      width={60}
+                    />
+                    <rc.Tooltip content={<WeightTooltip />} />
+                    <rc.Line
+                      type="monotone"
+                      dataKey="weightKg"
+                      stroke="#34d399"
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: "#34d399", stroke: "#34d399" }}
+                      activeDot={{ r: 5, fill: "#34d399", stroke: "#fff", strokeWidth: 2 }}
+                    />
+                  </rc.LineChart>
+                </rc.ResponsiveContainer>
+              )}
+            </LazyRechartsProvider>
           </div>
         )}
       </section>

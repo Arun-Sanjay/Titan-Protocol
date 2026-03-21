@@ -2743,6 +2743,19 @@ html[data-theme="cyberpunk"] .tp-button:hover {
   }
 }
 
+/* --- Chart Loading Skeleton --- */
+.tx-chart-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.02) 75%);
+  background-size: 200% 100%;
+  animation: tx-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes tx-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* --- Mobile Sub-Navigation (Engine/Track page switcher) --- */
 .tx-mobile-subnav {
   display: none;

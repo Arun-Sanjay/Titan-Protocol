@@ -10,14 +10,7 @@ import {
   getSleepStats,
   computeDuration,
 } from "@/lib/sleep";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { LazyRechartsProvider } from "@/components/ui/LazyRecharts";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -234,46 +227,50 @@ export default function SleepPage() {
               No sleep data yet. Log your first night to see trends.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={chartData}>
-                <XAxis
-                  dataKey="dateKey"
-                  stroke="rgba(255,255,255,0.3)"
-                  tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
-                />
-                <YAxis
-                  domain={[0, 12]}
-                  stroke="rgba(255,255,255,0.3)"
-                  tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
-                  unit="h"
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(0,0,0,0.85)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="hours"
-                  stroke="#34d399"
-                  strokeWidth={2}
-                  dot={{ fill: "#34d399", r: 3 }}
-                  name="Hours"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="quality"
-                  stroke="#60a5fa"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  dot={false}
-                  name="Quality"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <LazyRechartsProvider fallback={<div style={{ height: 250 }} className="rounded-md border border-white/5 bg-white/[0.02]" />}>
+              {(rc) => (
+                <rc.ResponsiveContainer width="100%" height={250}>
+                  <rc.LineChart data={chartData}>
+                    <rc.XAxis
+                      dataKey="dateKey"
+                      stroke="rgba(255,255,255,0.3)"
+                      tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
+                    />
+                    <rc.YAxis
+                      domain={[0, 12]}
+                      stroke="rgba(255,255,255,0.3)"
+                      tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }}
+                      unit="h"
+                    />
+                    <rc.Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(0,0,0,0.85)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                    />
+                    <rc.Line
+                      type="monotone"
+                      dataKey="hours"
+                      stroke="#34d399"
+                      strokeWidth={2}
+                      dot={{ fill: "#34d399", r: 3 }}
+                      name="Hours"
+                    />
+                    <rc.Line
+                      type="monotone"
+                      dataKey="quality"
+                      stroke="#60a5fa"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      dot={false}
+                      name="Quality"
+                    />
+                  </rc.LineChart>
+                </rc.ResponsiveContainer>
+              )}
+            </LazyRechartsProvider>
           )}
         </section>
       </div>

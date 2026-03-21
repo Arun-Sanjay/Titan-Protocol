@@ -2,21 +2,7 @@
 
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { LazyRechartsProvider, preloadRecharts } from "@/components/ui/LazyRecharts";
 
 import { todayISO, addDaysISO } from "@/lib/date";
 import { EMPTY_SCORE, ENGINES, type TitanScore, type EngineKey, getDateRangeScoresForAllEngines } from "@/lib/scoring";
@@ -189,6 +175,11 @@ export default function Dashboard() {
 
   const radarHeight = isCyberpunk ? 280 : 220;
 
+  // Preload recharts in background as soon as Dashboard mounts
+  React.useEffect(() => {
+    preloadRecharts();
+  }, []);
+
   return (
     <main className="tx-dashboard w-full px-2 py-2 sm:px-4 sm:py-4">
       <TitanPageHeader
@@ -257,37 +248,41 @@ export default function Dashboard() {
           <TitanPanel className="tx-dashboard-card tx-dashboard-radar">
             <TitanPanelHeader kicker="Engine Overview" />
             <div className="tx-dashboard-radar-chart">
-              <ResponsiveContainer width="100%" height={radarHeight}>
-                <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                  <PolarGrid
-                    stroke={isCyberpunk ? "rgba(56,189,248,0.12)" : "rgba(255,255,255,0.07)"}
-                    strokeDasharray={isCyberpunk ? "2 4" : undefined}
-                  />
-                  <PolarAngleAxis
-                    dataKey="subject"
-                    tick={{
-                      fill: isCyberpunk ? "rgba(56,189,248,0.7)" : "rgba(233,240,255,0.60)",
-                      fontSize: isCyberpunk ? 11 : 10,
-                      letterSpacing: "0.12em",
-                      fontFamily: isCyberpunk ? "var(--font-mono-cyber, monospace)" : undefined,
-                    }}
-                  />
-                  <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                  <Radar
-                    dataKey="score"
-                    stroke={isCyberpunk ? "rgba(56,189,248,0.9)" : "rgba(222,231,243,0.80)"}
-                    fill={isCyberpunk ? "rgba(56,189,248,0.18)" : "rgba(222,231,243,0.15)"}
-                    strokeWidth={isCyberpunk ? 2 : 1.5}
-                    dot={{
-                      fill: isCyberpunk ? "rgba(56,189,248,1)" : "rgba(222,231,243,0.80)",
-                      r: isCyberpunk ? 4 : 2,
-                      stroke: isCyberpunk ? "rgba(56,189,248,0.4)" : undefined,
-                      strokeWidth: isCyberpunk ? 4 : 0,
-                    }}
-                    isAnimationActive={false}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+              <LazyRechartsProvider fallback={<div style={{ height: radarHeight }} className="tx-chart-skeleton" />}>
+                {(rc) => (
+                  <rc.ResponsiveContainer width="100%" height={radarHeight}>
+                    <rc.RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                      <rc.PolarGrid
+                        stroke={isCyberpunk ? "rgba(56,189,248,0.12)" : "rgba(255,255,255,0.07)"}
+                        strokeDasharray={isCyberpunk ? "2 4" : undefined}
+                      />
+                      <rc.PolarAngleAxis
+                        dataKey="subject"
+                        tick={{
+                          fill: isCyberpunk ? "rgba(56,189,248,0.7)" : "rgba(233,240,255,0.60)",
+                          fontSize: isCyberpunk ? 11 : 10,
+                          letterSpacing: "0.12em",
+                          fontFamily: isCyberpunk ? "var(--font-mono-cyber, monospace)" : undefined,
+                        }}
+                      />
+                      <rc.PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                      <rc.Radar
+                        dataKey="score"
+                        stroke={isCyberpunk ? "rgba(56,189,248,0.9)" : "rgba(222,231,243,0.80)"}
+                        fill={isCyberpunk ? "rgba(56,189,248,0.18)" : "rgba(222,231,243,0.15)"}
+                        strokeWidth={isCyberpunk ? 2 : 1.5}
+                        dot={{
+                          fill: isCyberpunk ? "rgba(56,189,248,1)" : "rgba(222,231,243,0.80)",
+                          r: isCyberpunk ? 4 : 2,
+                          stroke: isCyberpunk ? "rgba(56,189,248,0.4)" : undefined,
+                          strokeWidth: isCyberpunk ? 4 : 0,
+                        }}
+                        isAnimationActive={false}
+                      />
+                    </rc.RadarChart>
+                  </rc.ResponsiveContainer>
+                )}
+              </LazyRechartsProvider>
             </div>
           </TitanPanel>
 
@@ -374,18 +369,22 @@ export default function Dashboard() {
 
               {weekData.sparklines[card.key].length > 0 ? (
                 <div className="tx-engine-chart">
-                  <ResponsiveContainer width="100%" height={40}>
-                    <LineChart data={weekData.sparklines[card.key]}>
-                      <Line
-                        type="monotone"
-                        dataKey="percent"
-                        stroke={isCyberpunk ? "rgba(56,189,248,0.9)" : "rgba(222,231,243,0.95)"}
-                        strokeWidth={1.8}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LazyRechartsProvider fallback={<div style={{ height: 40 }} />}>
+                    {(rc) => (
+                      <rc.ResponsiveContainer width="100%" height={40}>
+                        <rc.LineChart data={weekData.sparklines[card.key]}>
+                          <rc.Line
+                            type="monotone"
+                            dataKey="percent"
+                            stroke={isCyberpunk ? "rgba(56,189,248,0.9)" : "rgba(222,231,243,0.95)"}
+                            strokeWidth={1.8}
+                            dot={false}
+                            isAnimationActive={false}
+                          />
+                        </rc.LineChart>
+                      </rc.ResponsiveContainer>
+                    )}
+                  </LazyRechartsProvider>
                 </div>
               ) : null}
 
@@ -431,41 +430,45 @@ export default function Dashboard() {
           <TitanPanel className="tx-dashboard-card">
             <TitanPanelHeader kicker="7-Day Titan Score Trend" />
             <div className="mt-2" style={{ width: "100%", height: 140 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weekData.titanSparkline} barCategoryGap="20%">
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "rgba(56,189,248,0.5)", fontSize: 9, fontFamily: "var(--font-mono-cyber, monospace)" }}
-                    axisLine={{ stroke: "rgba(56,189,248,0.08)" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fill: "rgba(56,189,248,0.3)", fontSize: 8 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={24}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(4,8,16,0.95)",
-                      border: "1px solid rgba(56,189,248,0.2)",
-                      borderRadius: 2,
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono-cyber, monospace)",
-                      color: "rgba(56,189,248,0.9)",
-                    }}
-                    cursor={{ fill: "rgba(56,189,248,0.04)" }}
-                    formatter={(val) => [`${val}%`, "Score"]}
-                  />
-                  <Bar
-                    dataKey="percent"
-                    fill="rgba(56,189,248,0.5)"
-                    radius={[2, 2, 0, 0]}
-                    isAnimationActive={false}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <LazyRechartsProvider fallback={<div style={{ height: 140 }} className="tx-chart-skeleton" />}>
+                {(rc) => (
+                  <rc.ResponsiveContainer width="100%" height="100%">
+                    <rc.BarChart data={weekData.titanSparkline} barCategoryGap="20%">
+                      <rc.XAxis
+                        dataKey="label"
+                        tick={{ fill: "rgba(56,189,248,0.5)", fontSize: 9, fontFamily: "var(--font-mono-cyber, monospace)" }}
+                        axisLine={{ stroke: "rgba(56,189,248,0.08)" }}
+                        tickLine={false}
+                      />
+                      <rc.YAxis
+                        domain={[0, 100]}
+                        tick={{ fill: "rgba(56,189,248,0.3)", fontSize: 8 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={24}
+                      />
+                      <rc.Tooltip
+                        contentStyle={{
+                          background: "rgba(4,8,16,0.95)",
+                          border: "1px solid rgba(56,189,248,0.2)",
+                          borderRadius: 2,
+                          fontSize: 10,
+                          fontFamily: "var(--font-mono-cyber, monospace)",
+                          color: "rgba(56,189,248,0.9)",
+                        }}
+                        cursor={{ fill: "rgba(56,189,248,0.04)" }}
+                        formatter={(val) => [`${val}%`, "Score"]}
+                      />
+                      <rc.Bar
+                        dataKey="percent"
+                        fill="rgba(56,189,248,0.5)"
+                        radius={[2, 2, 0, 0]}
+                        isAnimationActive={false}
+                      />
+                    </rc.BarChart>
+                  </rc.ResponsiveContainer>
+                )}
+              </LazyRechartsProvider>
             </div>
           </TitanPanel>
         )}
