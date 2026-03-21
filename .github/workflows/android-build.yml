@@ -59,6 +59,32 @@ jobs:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
         run: npx tauri android build
 
+      - name: Sign APK with debug keystore
+        run: |
+          # Generate a debug keystore
+          keytool -genkey -v -keystore debug.keystore -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
+
+          UNSIGNED_APK=$(find apps/web/src-tauri/gen/android/app/build/outputs -name "*-unsigned.apk" | head -1)
+          SIGNED_APK="${UNSIGNED_APK/-unsigned/}"
+
+          # Align the APK
+          ${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | sort -V | tail -1)/zipalign -v 4 \
+            "$UNSIGNED_APK" "${UNSIGNED_APK}.aligned"
+
+          # Sign with debug key
+          ${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | sort -V | tail -1)/apksigner sign \
+            --ks debug.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out "$SIGNED_APK" \
+            "${UNSIGNED_APK}.aligned"
+
+          echo "Signed APK: $SIGNED_APK"
+
       - name: List Android bundle output
         run: |
           find apps/web/src-tauri/gen/android/app/build/outputs -type f -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "No Android bundles found"
@@ -69,6 +95,8 @@ jobs:
           name: tauri-android-apk
           path: |
             apps/web/src-tauri/gen/android/app/build/outputs/**/*.apk
+            !apps/web/src-tauri/gen/android/app/build/outputs/**/*-unsigned.apk
+            !apps/web/src-tauri/gen/android/app/build/outputs/**/*.aligned
           if-no-files-found: warn
 
       - name: Upload Android AAB artifacts
